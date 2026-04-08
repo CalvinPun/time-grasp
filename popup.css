@@ -25,6 +25,57 @@ h1 {
   margin-bottom: 18px;
 }
 
+.countdown-card {
+  margin-bottom: 18px;
+  border-radius: 20px;
+  padding: 18px;
+  background: rgba(255, 249, 242, 0.88);
+  border: 1px solid rgba(122, 90, 58, 0.16);
+  box-shadow: 0 12px 30px rgba(82, 56, 34, 0.08);
+}
+
+.countdown-idle {
+  background: rgba(255, 249, 242, 0.88);
+}
+
+.countdown-safe {
+  background: linear-gradient(180deg, #f5fbf3 0%, #ebf6e7 100%);
+}
+
+.countdown-warning {
+  background: linear-gradient(180deg, #fff7e4 0%, #f9ebc5 100%);
+}
+
+.countdown-urgent {
+  background: linear-gradient(180deg, #fff0eb 0%, #ffd9cc 100%);
+}
+
+.countdown-expired {
+  background: linear-gradient(180deg, #f9e6e2 0%, #f1cbc2 100%);
+}
+
+.countdown-label {
+  margin: 0 0 8px;
+  color: #7a5a3a;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.countdown-display {
+  margin: 0;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.countdown-detail {
+  margin: 8px 0 0;
+  color: #5d4b3c;
+  line-height: 1.5;
+}
+
 .eyebrow {
   margin: 0 0 6px;
   color: #7a5a3a;

@@ -20,14 +20,19 @@ const actionsList = document.querySelector("#routine-actions");
 const addActionButton = document.querySelector("#add-action-button");
 const routineTotal = document.querySelector("#routine-total");
 const saveToast = document.querySelector("#save-toast");
+const countdownCard = document.querySelector("#countdown-card");
+const countdownDisplay = document.querySelector("#countdown-display");
+const countdownDetail = document.querySelector("#countdown-detail");
 
 let saveToastTimeoutId = null;
+let countdownIntervalId = null;
 
 initialize();
 
 async function initialize() {
   const settings = await loadSettings();
   applySettingsToForm(settings);
+  startCountdown();
 }
 
 function loadSettings() {
@@ -77,6 +82,7 @@ form.addEventListener("submit", async (event) => {
   await chrome.storage.sync.set(nextSettings);
   setStatus("Settings saved.", "success");
   showSaveToast();
+  startCountdown();
 });
 
 addActionButton.addEventListener("click", () => {
@@ -109,7 +115,10 @@ actionsList.addEventListener("click", (event) => {
 
 actionsList.addEventListener("input", () => {
   updateRoutineTotal();
+  updateCountdownFromForm();
 });
+
+bedtimeInput.addEventListener("input", updateCountdownFromForm);
 
 function setStatus(message, tone = "") {
   statusMessage.textContent = message;
@@ -224,4 +233,108 @@ function showSaveToast() {
     saveToast.classList.remove("visible");
     saveToast.setAttribute("aria-hidden", "true");
   }, 1600);
+}
+
+function startCountdown() {
+  if (countdownIntervalId) {
+    window.clearInterval(countdownIntervalId);
+  }
+
+  updateCountdownFromForm();
+  countdownIntervalId = window.setInterval(updateCountdownFromForm, 1000);
+}
+
+function updateCountdownFromForm() {
+  const bedtime = bedtimeInput.value;
+  const routineActions = collectRoutineActions();
+
+  if (!bedtime) {
+    renderCountdownIdle("Add your bedtime and routine to start the countdown.");
+    return;
+  }
+
+  const invalidAction = routineActions.find((action) => !isDraftRoutineActionUsable(action));
+
+  if (invalidAction) {
+    renderCountdownIdle("Finish each routine action to see your real usable time.");
+    return;
+  }
+
+  const totalRoutineMinutes = routineActions.reduce((sum, action) => sum + action.minutes, 0);
+  const bedtimeDate = getNextBedtimeDate(bedtime, new Date());
+  const cutoffDate = new Date(bedtimeDate.getTime() - totalRoutineMinutes * 60 * 1000);
+  const millisecondsLeft = cutoffDate.getTime() - Date.now();
+
+  renderCountdown(millisecondsLeft, bedtimeDate, totalRoutineMinutes);
+}
+
+function renderCountdown(millisecondsLeft, bedtimeDate, totalRoutineMinutes) {
+  const totalSecondsLeft = Math.floor(millisecondsLeft / 1000);
+  const bedtimeLabel = formatClockTime(bedtimeDate);
+  const routineLabel = totalRoutineMinutes === 1 ? "1 min" : `${totalRoutineMinutes} min`;
+
+  if (millisecondsLeft <= 0) {
+    countdownDisplay.textContent = "Time's up";
+    countdownDetail.textContent = `Bedtime is ${bedtimeLabel}. Your ${routineLabel} routine should already be starting.`;
+    setCountdownTone("countdown-expired");
+    return;
+  }
+
+  countdownDisplay.textContent = formatDuration(totalSecondsLeft);
+  countdownDetail.textContent = `Bedtime ${bedtimeLabel}. Routine buffer: ${routineLabel}.`;
+
+  if (millisecondsLeft <= 15 * 60 * 1000) {
+    setCountdownTone("countdown-urgent");
+    return;
+  }
+
+  if (millisecondsLeft <= 60 * 60 * 1000) {
+    setCountdownTone("countdown-warning");
+    return;
+  }
+
+  setCountdownTone("countdown-safe");
+}
+
+function renderCountdownIdle(message) {
+  countdownDisplay.textContent = "--:--:--";
+  countdownDetail.textContent = message;
+  setCountdownTone("countdown-idle");
+}
+
+function setCountdownTone(toneClass) {
+  countdownCard.className = `countdown-card ${toneClass}`;
+}
+
+function isDraftRoutineActionUsable(action) {
+  return Boolean(action.name) && Number.isFinite(action.minutes) && action.minutes >= 0 && action.minutes <= 300;
+}
+
+function getNextBedtimeDate(timeString, now) {
+  const [hoursText, minutesText] = timeString.split(":");
+  const bedtime = new Date(now);
+  bedtime.setHours(Number.parseInt(hoursText, 10), Number.parseInt(minutesText, 10), 0, 0);
+
+  if (bedtime.getTime() <= now.getTime()) {
+    bedtime.setDate(bedtime.getDate() + 1);
+  }
+
+  return bedtime;
+}
+
+function formatDuration(totalSeconds) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return [hours, minutes, seconds]
+    .map((value) => String(value).padStart(2, "0"))
+    .join(":");
+}
+
+function formatClockTime(date) {
+  return new Intl.DateTimeFormat([], {
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(date);
 }
