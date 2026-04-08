@@ -6,6 +6,9 @@ Instead of only counting down to bedtime, it subtracts your selected night routi
 
 Made for a friend :)
 
+## Logo
+- Handmade in Figma
+
 ## What It Does
 
 - Shows a live countdown for your usable time left
