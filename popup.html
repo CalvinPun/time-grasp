@@ -14,56 +14,65 @@
         <p class="subtitle">Set your bedtime and routine so the extension can track your real usable time.</p>
       </header>
 
-      <section id="countdown-card" class="countdown-card countdown-idle" aria-live="polite">
-        <p class="countdown-label">Usable time left</p>
-        <p id="countdown-display" class="countdown-display">--:--:--</p>
-        <p id="countdown-detail" class="countdown-detail">Add your bedtime and routine to start the countdown.</p>
+      <nav class="tab-bar" aria-label="Popup sections">
+        <button id="countdown-tab" class="tab-button active" type="button" data-tab="countdown">Countdown</button>
+        <button id="settings-tab" class="tab-button" type="button" data-tab="settings">Settings</button>
+      </nav>
+
+      <section id="countdown-panel" class="tab-panel active" data-panel="countdown">
+        <section id="countdown-card" class="countdown-card countdown-idle" aria-live="polite">
+          <p class="countdown-label">Usable time left</p>
+          <p id="countdown-display" class="countdown-display">--:--:--</p>
+          <p id="countdown-detail" class="countdown-detail">Add your bedtime and routine to start the countdown.</p>
+        </section>
       </section>
 
-      <form id="settings-form" class="settings-form">
-        <label class="field">
-          <span>Bedtime</span>
-          <input id="bedtime" name="bedtime" type="time" required>
-        </label>
-
-        <label class="field">
-          <span>Routine name</span>
-          <input
-            id="routine-label"
-            name="routineLabel"
-            type="text"
-            maxlength="40"
-            placeholder="Shower, brush teeth, get ready"
-          >
-        </label>
-
-        <section class="field">
-          <div class="section-heading">
-            <span>Routine actions</span>
-            <button id="add-action-button" class="ghost-button" type="button">Add action</button>
-          </div>
-          <div id="routine-actions" class="actions-list"></div>
-          <p id="routine-total" class="routine-total">Total routine time: 0 min</p>
-        </section>
-
-        <fieldset class="field checkbox-group">
-          <legend>Notifications</legend>
-          <label class="checkbox">
-            <input id="notify-30" name="notify30" type="checkbox">
-            <span>30 minutes left</span>
+      <section id="settings-panel" class="tab-panel" data-panel="settings" hidden>
+        <form id="settings-form" class="settings-form">
+          <label class="field">
+            <span>Bedtime</span>
+            <input id="bedtime" name="bedtime" type="time" required>
           </label>
-          <label class="checkbox">
-            <input id="notify-5" name="notify5" type="checkbox">
-            <span>5 minutes left</span>
-          </label>
-          <label class="checkbox">
-            <input id="notify-0" name="notify0" type="checkbox">
-            <span>Time is up</span>
-          </label>
-        </fieldset>
 
-        <button id="save-button" class="save-button" type="submit">Save settings</button>
-      </form>
+          <label class="field">
+            <span>Routine name</span>
+            <input
+              id="routine-label"
+              name="routineLabel"
+              type="text"
+              maxlength="40"
+              placeholder="Shower, brush teeth, get ready"
+            >
+          </label>
+
+          <section class="field">
+            <div class="section-heading">
+              <span>Routine actions</span>
+              <button id="add-action-button" class="ghost-button" type="button">Add action</button>
+            </div>
+            <div id="routine-actions" class="actions-list"></div>
+            <p id="routine-total" class="routine-total">Total routine time: 0 min</p>
+          </section>
+
+          <fieldset class="field checkbox-group">
+            <legend>Notifications</legend>
+            <label class="checkbox">
+              <input id="notify-30" name="notify30" type="checkbox">
+              <span>30 minutes left</span>
+            </label>
+            <label class="checkbox">
+              <input id="notify-5" name="notify5" type="checkbox">
+              <span>5 minutes left</span>
+            </label>
+            <label class="checkbox">
+              <input id="notify-0" name="notify0" type="checkbox">
+              <span>Time is up</span>
+            </label>
+          </fieldset>
+
+          <button id="save-button" class="save-button" type="submit">Save settings</button>
+        </form>
+      </section>
 
       <p id="status-message" class="status-message" role="status" aria-live="polite"></p>
       <div id="save-toast" class="save-toast" aria-hidden="true">Settings saved</div>

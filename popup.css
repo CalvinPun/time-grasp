@@ -3,9 +3,16 @@
   font-family: Arial, sans-serif;
 }
 
+html {
+  max-height: 640px;
+}
+
 body {
   margin: 0;
   min-width: 360px;
+  width: 380px;
+  max-height: 640px;
+  overflow-y: auto;
   background:
     radial-gradient(circle at top left, #f9d9b4 0%, rgba(249, 217, 180, 0) 36%),
     linear-gradient(180deg, #f8efe3 0%, #f3e6d5 100%);
@@ -14,6 +21,8 @@ body {
 
 .app {
   padding: 20px;
+  padding-bottom: 28px;
+  box-sizing: border-box;
 }
 
 h1 {
@@ -25,8 +34,38 @@ h1 {
   margin-bottom: 18px;
 }
 
+.tab-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 6px;
+  border-radius: 999px;
+  background: rgba(255, 250, 244, 0.72);
+  border: 1px solid rgba(122, 90, 58, 0.14);
+}
+
+.tab-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: transparent;
+  color: #6f5643;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tab-button.active {
+  background: #1f1a17;
+  color: #fff8ef;
+}
+
+.tab-panel[hidden] {
+  display: none;
+}
+
 .countdown-card {
-  margin-bottom: 18px;
   border-radius: 20px;
   padding: 18px;
   background: rgba(255, 249, 242, 0.88);

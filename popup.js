@@ -23,6 +23,8 @@ const saveToast = document.querySelector("#save-toast");
 const countdownCard = document.querySelector("#countdown-card");
 const countdownDisplay = document.querySelector("#countdown-display");
 const countdownDetail = document.querySelector("#countdown-detail");
+const tabButtons = [...document.querySelectorAll(".tab-button")];
+const tabPanels = [...document.querySelectorAll(".tab-panel")];
 
 let saveToastTimeoutId = null;
 let countdownIntervalId = null;
@@ -33,6 +35,7 @@ async function initialize() {
   const settings = await loadSettings();
   applySettingsToForm(settings);
   startCountdown();
+  setActiveTab("countdown");
 }
 
 function loadSettings() {
@@ -83,6 +86,7 @@ form.addEventListener("submit", async (event) => {
   setStatus("Settings saved.", "success");
   showSaveToast();
   startCountdown();
+  setActiveTab("countdown");
 });
 
 addActionButton.addEventListener("click", () => {
@@ -119,6 +123,11 @@ actionsList.addEventListener("input", () => {
 });
 
 bedtimeInput.addEventListener("input", updateCountdownFromForm);
+tabButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setActiveTab(button.dataset.tab);
+  });
+});
 
 function setStatus(message, tone = "") {
   statusMessage.textContent = message;
@@ -337,4 +346,16 @@ function formatClockTime(date) {
     hour: "numeric",
     minute: "2-digit"
   }).format(date);
+}
+
+function setActiveTab(tabName) {
+  tabButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.tab === tabName);
+  });
+
+  tabPanels.forEach((panel) => {
+    const isActive = panel.dataset.panel === tabName;
+    panel.hidden = !isActive;
+    panel.classList.toggle("active", isActive);
+  });
 }
