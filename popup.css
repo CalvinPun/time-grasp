@@ -5,9 +5,10 @@
 
 body {
   margin: 0;
-  min-width: 320px;
-  min-height: 160px;
-  background: #f7f1e8;
+  min-width: 360px;
+  background:
+    radial-gradient(circle at top left, #f9d9b4 0%, rgba(249, 217, 180, 0) 36%),
+    linear-gradient(180deg, #f8efe3 0%, #f3e6d5 100%);
   color: #1f1a17;
 }
 
@@ -16,11 +17,98 @@ body {
 }
 
 h1 {
-  margin: 0 0 12px;
-  font-size: 24px;
+  margin: 0;
+  font-size: 28px;
 }
 
-p {
+.hero {
+  margin-bottom: 18px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: #7a5a3a;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  margin: 8px 0 0;
+  color: #5d4b3c;
+  line-height: 1.5;
+}
+
+.settings-form {
+  display: grid;
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.field span,
+.field legend {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.field input[type="time"],
+.field input[type="text"],
+.field input[type="number"] {
+  border: 1px solid #cdb79f;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: rgba(255, 252, 248, 0.9);
+  color: #1f1a17;
+  font-size: 15px;
+}
+
+.field input:focus {
+  outline: 2px solid #d67d34;
+  outline-offset: 2px;
+}
+
+.checkbox-group {
   margin: 0;
-  line-height: 1.4;
+  border: 1px solid #dbc8b2;
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(255, 250, 244, 0.65);
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.checkbox + .checkbox {
+  margin-top: 10px;
+}
+
+.save-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 16px;
+  background: #1f1a17;
+  color: #fff8ef;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.save-button:hover {
+  background: #39312d;
+}
+
+.status-message {
+  min-height: 20px;
+  margin: 14px 0 0;
+  color: #7a5a3a;
+  font-size: 13px;
 }

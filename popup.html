@@ -8,9 +8,63 @@
   </head>
   <body>
     <main class="app">
-      <h1>Time Grasp</h1>
-      <p>The popup UI is coming next.</p>
+      <header class="hero">
+        <p class="eyebrow">Night Countdown</p>
+        <h1>Time Grasp</h1>
+        <p class="subtitle">Set your bedtime and routine so the extension can track your real usable time.</p>
+      </header>
+
+      <form id="settings-form" class="settings-form">
+        <label class="field">
+          <span>Bedtime</span>
+          <input id="bedtime" name="bedtime" type="time" required>
+        </label>
+
+        <label class="field">
+          <span>Routine name</span>
+          <input
+            id="routine-label"
+            name="routineLabel"
+            type="text"
+            maxlength="40"
+            placeholder="Shower, brush teeth, get ready"
+          >
+        </label>
+
+        <label class="field">
+          <span>Routine duration (minutes)</span>
+          <input
+            id="routine-minutes"
+            name="routineMinutes"
+            type="number"
+            min="0"
+            max="300"
+            step="5"
+            required
+          >
+        </label>
+
+        <fieldset class="field checkbox-group">
+          <legend>Notifications</legend>
+          <label class="checkbox">
+            <input id="notify-30" name="notify30" type="checkbox">
+            <span>30 minutes left</span>
+          </label>
+          <label class="checkbox">
+            <input id="notify-5" name="notify5" type="checkbox">
+            <span>5 minutes left</span>
+          </label>
+          <label class="checkbox">
+            <input id="notify-0" name="notify0" type="checkbox">
+            <span>Time is up</span>
+          </label>
+        </fieldset>
+
+        <button class="save-button" type="submit">Save settings</button>
+      </form>
+
+      <p id="status-message" class="status-message" role="status" aria-live="polite"></p>
     </main>
     <script src="popup.js"></script>
   </body>
-  </html>
+</html>
