@@ -11,6 +11,9 @@
   "background": {
     "service_worker": "background.js"
   },
+  "icons": {
+    "128": "icon.png"
+  },
   "action": {
     "default_title": "Time Grasp",
     "default_popup": "popup.html"

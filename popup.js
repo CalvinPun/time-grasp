@@ -8,7 +8,8 @@ const DEFAULT_SETTINGS = {
   eveningSession: null,
   notify30: true,
   notify5: true,
-  notify0: true
+  notify0: true,
+  notificationSound: true
 };
 
 const form = document.querySelector("#settings-form");
@@ -16,6 +17,7 @@ const bedtimeInput = document.querySelector("#bedtime");
 const notify30Input = document.querySelector("#notify-30");
 const notify5Input = document.querySelector("#notify-5");
 const notify0Input = document.querySelector("#notify-0");
+const notificationSoundInput = document.querySelector("#notification-sound");
 const statusMessage = document.querySelector("#status-message");
 const actionsList = document.querySelector("#routine-actions");
 const addActionButton = document.querySelector("#add-action-button");
@@ -47,11 +49,39 @@ const themeToggle = document.querySelector("#theme-toggle");
 let saveToastTimeoutId = null;
 let countdownIntervalId = null;
 let statusMessageTimeoutId = null;
+let autosaveTimeoutId = null;
 const countdownRingCircumference = 2 * Math.PI * 88;
 let todoSortMode = "manual";
 
 countdownRingProgress.style.strokeDasharray = String(countdownRingCircumference);
 countdownRingProgress.style.strokeDashoffset = String(countdownRingCircumference);
+
+function sortTodoItemsByMinutes(items, direction) {
+  const multiplier = direction === "desc" ? -1 : 1;
+
+  return [...items].sort((left, right) => {
+    return (left.minutes - right.minutes) * multiplier;
+  });
+}
+
+function moveTodoItem(items, todoId, direction) {
+  const nextItems = [...items];
+  const index = nextItems.findIndex((item) => item.id === todoId);
+
+  if (index === -1) {
+    return nextItems;
+  }
+
+  const targetIndex = direction === "up" ? index - 1 : index + 1;
+
+  if (targetIndex < 0 || targetIndex >= nextItems.length) {
+    return nextItems;
+  }
+
+  const [item] = nextItems.splice(index, 1);
+  nextItems.splice(targetIndex, 0, item);
+  return nextItems;
+}
 
 initialize();
 
@@ -72,6 +102,7 @@ function applySettingsToForm(settings) {
   notify30Input.checked = settings.notify30;
   notify5Input.checked = settings.notify5;
   notify0Input.checked = settings.notify0;
+  notificationSoundInput.checked = settings.notificationSound;
   renderRoutineActions(normalizeRoutineActions(settings));
   renderTodoItems(Array.isArray(settings.todoItems) ? settings.todoItems : []);
   applyTheme(settings.theme);
@@ -80,41 +111,11 @@ function applySettingsToForm(settings) {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+  const didSave = await saveSettings();
 
-  const bedtime = bedtimeInput.value;
-  const routineActions = collectRoutineActions();
-
-  if (!bedtime) {
-    setStatus("Choose a bedtime first.", "error");
-    return;
+  if (didSave) {
+    setActiveTab("countdown");
   }
-
-  if (routineActions.length === 0) {
-    setStatus("Add at least one routine action.", "error");
-    return;
-  }
-
-  if (!routineActions.every(isValidRoutineAction)) {
-    setStatus("Each action needs a name and a valid minute value.", "error");
-    return;
-  }
-
-  const nextSettings = {
-    bedtime,
-    routineActions,
-    theme: getStoredTheme(),
-    eveningSession: (await loadSettings()).eveningSession,
-    notify30: notify30Input.checked,
-    notify5: notify5Input.checked,
-    notify0: notify0Input.checked
-  };
-
-  await chrome.storage.sync.set(nextSettings);
-  setStatus("Settings saved.", "success");
-  showSaveToast();
-  startCountdown();
-  updateTodoFitEstimate();
-  setActiveTab("countdown");
 });
 
 addActionButton.addEventListener("click", () => {
@@ -143,12 +144,14 @@ actionsList.addEventListener("click", (event) => {
   }
 
   updateRoutineTotal();
+  queueAutosave();
 });
 
 actionsList.addEventListener("input", () => {
   updateRoutineTotal();
-  updateCountdownFromForm();
+  void updateCountdownFromForm();
   updateTodoFitEstimate();
+  queueAutosave();
 });
 
 actionsList.addEventListener("change", (event) => {
@@ -166,8 +169,9 @@ actionsList.addEventListener("change", (event) => {
 
   row.classList.toggle("selected", checkbox.checked);
   updateRoutineTotal();
-  updateCountdownFromForm();
+  void updateCountdownFromForm();
   updateTodoFitEstimate();
+  queueAutosave();
 });
 
 todoForm.addEventListener("submit", async (event) => {
@@ -268,7 +272,12 @@ sortDescendingButton.addEventListener("click", async () => {
 bedtimeInput.addEventListener("input", async () => {
   await ensureEveningSession(await loadSettings());
   await updateCountdownFromForm();
+  queueAutosave();
 });
+notify30Input.addEventListener("change", queueAutosave);
+notify5Input.addEventListener("change", queueAutosave);
+notify0Input.addEventListener("change", queueAutosave);
+notificationSoundInput.addEventListener("change", queueAutosave);
 tabButtons.forEach((button) => {
   button.addEventListener("click", () => {
     setActiveTab(button.dataset.tab);
@@ -285,6 +294,7 @@ themeToggle.addEventListener("click", async () => {
     notify30: settings.notify30,
     notify5: settings.notify5,
     notify0: settings.notify0,
+    notificationSound: settings.notificationSound,
     theme: nextTheme
   });
 
@@ -306,6 +316,63 @@ function setStatus(message, tone = "") {
 
   if (message) {
     statusMessageTimeoutId = window.setTimeout(clearStatus, 2200);
+  }
+}
+
+async function saveSettings() {
+  const bedtime = bedtimeInput.value;
+  const routineActions = collectRoutineActions();
+
+  if (!bedtime) {
+    setStatus("Choose a bedtime first.", "error");
+    return false;
+  }
+
+  if (routineActions.length === 0) {
+    setStatus("Add at least one routine action.", "error");
+    return false;
+  }
+
+  if (!routineActions.every(isValidRoutineAction)) {
+    setStatus("Each action needs a name and a valid minute value.", "error");
+    return false;
+  }
+
+  const nextSettings = {
+    bedtime,
+    routineActions,
+    theme: getStoredTheme(),
+    eveningSession: (await loadSettings()).eveningSession,
+    notify30: notify30Input.checked,
+    notify5: notify5Input.checked,
+    notify0: notify0Input.checked,
+    notificationSound: notificationSoundInput.checked
+  };
+
+  await chrome.storage.sync.set(nextSettings);
+  await refreshBackgroundAlarms();
+  setStatus("Settings saved.", "success");
+  showSaveToast();
+  void startCountdown();
+  updateTodoFitEstimate();
+  return true;
+}
+
+function queueAutosave() {
+  if (autosaveTimeoutId) {
+    window.clearTimeout(autosaveTimeoutId);
+  }
+
+  autosaveTimeoutId = window.setTimeout(() => {
+    void saveSettings();
+  }, 450);
+}
+
+async function refreshBackgroundAlarms() {
+  try {
+    await chrome.runtime.sendMessage({ type: "refresh-alarms" });
+  } catch (error) {
+    console.warn("Unable to refresh alarms", error);
   }
 }
 
@@ -743,7 +810,7 @@ function updateTodoFitEstimate(todoItems = null) {
   }
 
   todoFitAnswer.textContent = "No";
-  todoFitDetail.textContent = `You are over by ${Math.abs(difference)} min: ${todoMinutes} min of tasks vs ${remainingMinutes} min left.`;
+  todoFitDetail.textContent = `${Math.abs(difference)} min over — you have ${todoMinutes} min of tasks but only ${remainingMinutes} min left.`;
   todoFitCard.classList.add("over");
 }
 
@@ -759,33 +826,6 @@ function getCurrentTodoItemsFromDom() {
       minutes: Number.parseInt(minutes.textContent, 10)
     };
   });
-}
-
-function sortTodoItemsByMinutes(items, direction) {
-  const multiplier = direction === "desc" ? -1 : 1;
-
-  return [...items].sort((left, right) => {
-    return (left.minutes - right.minutes) * multiplier;
-  });
-}
-
-function moveTodoItem(items, todoId, direction) {
-  const nextItems = [...items];
-  const index = nextItems.findIndex((item) => item.id === todoId);
-
-  if (index === -1) {
-    return nextItems;
-  }
-
-  const targetIndex = direction === "up" ? index - 1 : index + 1;
-
-  if (targetIndex < 0 || targetIndex >= nextItems.length) {
-    return nextItems;
-  }
-
-  const [item] = nextItems.splice(index, 1);
-  nextItems.splice(targetIndex, 0, item);
-  return nextItems;
 }
 
 function setTodoSortMode(mode) {
