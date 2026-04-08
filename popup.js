@@ -1,6 +1,5 @@
 const DEFAULT_SETTINGS = {
   bedtime: "",
-  routineLabel: "",
   routineActions: [
     { name: "Get ready", minutes: 45 }
   ],
@@ -11,7 +10,6 @@ const DEFAULT_SETTINGS = {
 
 const form = document.querySelector("#settings-form");
 const bedtimeInput = document.querySelector("#bedtime");
-const routineLabelInput = document.querySelector("#routine-label");
 const notify30Input = document.querySelector("#notify-30");
 const notify5Input = document.querySelector("#notify-5");
 const notify0Input = document.querySelector("#notify-0");
@@ -44,7 +42,6 @@ function loadSettings() {
 
 function applySettingsToForm(settings) {
   bedtimeInput.value = settings.bedtime;
-  routineLabelInput.value = settings.routineLabel;
   notify30Input.checked = settings.notify30;
   notify5Input.checked = settings.notify5;
   notify0Input.checked = settings.notify0;
@@ -55,7 +52,6 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const bedtime = bedtimeInput.value;
-  const routineLabel = routineLabelInput.value.trim();
   const routineActions = collectRoutineActions();
 
   if (!bedtime) {
@@ -75,7 +71,6 @@ form.addEventListener("submit", async (event) => {
 
   const nextSettings = {
     bedtime,
-    routineLabel,
     routineActions,
     notify30: notify30Input.checked,
     notify5: notify5Input.checked,
@@ -149,7 +144,7 @@ function normalizeRoutineActions(settings) {
   if (Number.isFinite(settings.routineMinutes)) {
     return [
       {
-        name: settings.routineLabel || "Get ready",
+        name: "Get ready",
         minutes: settings.routineMinutes
       }
     ];
@@ -352,6 +347,8 @@ function setActiveTab(tabName) {
   tabButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.tab === tabName);
   });
+
+  document.querySelector(".hero").hidden = tabName === "settings";
 
   tabPanels.forEach((panel) => {
     const isActive = panel.dataset.panel === tabName;
