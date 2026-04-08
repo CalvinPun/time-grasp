@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Time Grasp",
+  "version": "0.1.0",
+  "description": "See how much usable time you really have left before bed.",
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Time Grasp",
+    "default_popup": "popup.html"
+  }
+}
