@@ -866,6 +866,8 @@ function setActiveTab(tabName) {
     button.classList.toggle("active", button.dataset.tab === tabName);
   });
 
+  document.documentElement.classList.toggle("countdown-locked", tabName === "countdown");
+  document.body.classList.toggle("countdown-locked", tabName === "countdown");
   document.querySelector(".hero").hidden = tabName !== "countdown";
   clearStatus();
 
