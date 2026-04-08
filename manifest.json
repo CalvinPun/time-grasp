@@ -6,13 +6,14 @@
   "permissions": [
     "storage",
     "alarms",
-    "notifications"
+    "notifications",
+    "offscreen"
   ],
   "background": {
     "service_worker": "background.js"
   },
   "icons": {
-    "128": "icon.png"
+    "128": "public/icon.png"
   },
   "action": {
     "default_title": "Time Grasp",

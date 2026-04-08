@@ -15,6 +15,14 @@ const ALARM_KEYS = {
   zero: "time-grasp:notify-0"
 };
 
+const OFFSCREEN_PATH = "offscreen.html";
+const ALERT_SOUNDS = {
+  thirty: "soft",
+  five: "medium",
+  zero: "final",
+  test: "final"
+};
+
 let lastNotificationResult = "No notification sent yet";
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -52,7 +60,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message?.type === "test-notification") {
-    void sendNotification("Test notification", "Time Grasp notifications are working.")
+    void sendNotification("Test notification", "Time Grasp notifications are working.", ALERT_SOUNDS.test)
       .then(() => sendResponse({ ok: true }))
       .catch((error) => sendResponse({ ok: false, error: String(error) }));
 
@@ -76,17 +84,17 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 
   if (alarm.name === ALARM_KEYS.thirty) {
-    void sendNotification("30 minutes left", "You have 30 minutes of usable time left.");
+    void sendNotification("30 minutes left", "You have 30 minutes of usable time left.", ALERT_SOUNDS.thirty);
     return;
   }
 
   if (alarm.name === ALARM_KEYS.five) {
-    void sendNotification("5 minutes left", "Wrap up now. Your usable time is almost gone.");
+    void sendNotification("5 minutes left", "Wrap up now. Your usable time is almost gone.", ALERT_SOUNDS.five);
     return;
   }
 
   if (alarm.name === ALARM_KEYS.zero) {
-    void sendNotification("Time's up", "Your usable time is over. It is time to start your night routine.");
+    void sendNotification("Time's up", "Your usable time is over. It is time to start your night routine.", ALERT_SOUNDS.zero);
   }
 });
 
@@ -191,17 +199,21 @@ function normalizeRoutineActions(settings) {
   return SETTINGS_DEFAULTS.routineActions;
 }
 
-async function sendNotification(title, message) {
+async function sendNotification(title, message, sound) {
   try {
     const settings = await chrome.storage.sync.get(SETTINGS_DEFAULTS);
     const notificationId = await chrome.notifications.create({
       type: "basic",
-      iconUrl: chrome.runtime.getURL("icon.png"),
+      iconUrl: chrome.runtime.getURL("public/icon.png"),
       title,
       message,
       priority: 2,
       silent: !settings.notificationSound
     });
+
+    if (settings.notificationSound) {
+      await playAlertSound(sound);
+    }
 
     lastNotificationResult = `Sent "${title}" as ${notificationId}`;
     return notificationId;
@@ -209,6 +221,50 @@ async function sendNotification(title, message) {
     lastNotificationResult = `Failed to send "${title}": ${String(error)}`;
     throw error;
   }
+}
+
+async function playAlertSound(sound) {
+  if (!sound) {
+    return;
+  }
+
+  await ensureOffscreenDocument();
+
+  const response = await chrome.runtime.sendMessage({
+    type: "play-alert-sound",
+    sound
+  });
+
+  if (!response?.ok) {
+    throw new Error(response?.error || "Unable to play alert sound.");
+  }
+}
+
+async function ensureOffscreenDocument() {
+  const offscreenUrl = chrome.runtime.getURL(OFFSCREEN_PATH);
+
+  if (await hasOffscreenDocument(offscreenUrl)) {
+    return;
+  }
+
+  await chrome.offscreen.createDocument({
+    url: OFFSCREEN_PATH,
+    reasons: ["AUDIO_PLAYBACK"],
+    justification: "Play alert sounds for countdown notifications."
+  });
+}
+
+async function hasOffscreenDocument(offscreenUrl) {
+  if (typeof chrome.runtime.getContexts !== "function") {
+    return false;
+  }
+
+  const contexts = await chrome.runtime.getContexts({
+    contextTypes: ["OFFSCREEN_DOCUMENT"],
+    documentUrls: [offscreenUrl]
+  });
+
+  return contexts.length > 0;
 }
 
 async function getNotificationDebugStatus() {

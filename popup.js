@@ -18,6 +18,7 @@ const notify30Input = document.querySelector("#notify-30");
 const notify5Input = document.querySelector("#notify-5");
 const notify0Input = document.querySelector("#notify-0");
 const notificationSoundInput = document.querySelector("#notification-sound");
+const testNotificationButton = document.querySelector("#test-notification-button");
 const statusMessage = document.querySelector("#status-message");
 const actionsList = document.querySelector("#routine-actions");
 const addActionButton = document.querySelector("#add-action-button");
@@ -278,6 +279,19 @@ notify30Input.addEventListener("change", queueAutosave);
 notify5Input.addEventListener("change", queueAutosave);
 notify0Input.addEventListener("change", queueAutosave);
 notificationSoundInput.addEventListener("change", queueAutosave);
+testNotificationButton.addEventListener("click", async () => {
+  try {
+    const response = await chrome.runtime.sendMessage({ type: "test-notification" });
+
+    if (!response?.ok) {
+      throw new Error(response?.error || "Unable to send test notification.");
+    }
+
+    setStatus("Test notification sent.", "success");
+  } catch (error) {
+    setStatus(`Test notification failed: ${error.message || String(error)}`, "error");
+  }
+});
 tabButtons.forEach((button) => {
   button.addEventListener("click", () => {
     setActiveTab(button.dataset.tab);
