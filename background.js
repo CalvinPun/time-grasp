@@ -204,7 +204,7 @@ async function sendNotification(title, message, sound) {
     const settings = await chrome.storage.sync.get(SETTINGS_DEFAULTS);
     const notificationId = await chrome.notifications.create({
       type: "basic",
-      iconUrl: chrome.runtime.getURL("public/icon.png"),
+      iconUrl: chrome.runtime.getURL("public/time-grasp-128.png"),
       title,
       message,
       priority: 2,

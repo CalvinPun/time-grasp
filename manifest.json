@@ -13,10 +13,17 @@
     "service_worker": "background.js"
   },
   "icons": {
-    "128": "public/icon.png"
+    "16": "public/time-grasp-16.png",
+    "32": "public/time-grasp-32.png",
+    "48": "public/time-grasp-48.png",
+    "128": "public/time-grasp-128.png"
   },
   "action": {
     "default_title": "Time Grasp",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "public/time-grasp-16.png",
+      "32": "public/time-grasp-32.png"
+    }
   }
 }
