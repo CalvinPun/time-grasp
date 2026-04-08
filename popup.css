@@ -272,13 +272,6 @@ h1 {
   text-align: center;
 }
 
-.countdown-percent {
-  margin: 8px 0 0;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-
 .countdown-detail {
   margin: 0;
   color: var(--muted-strong);
@@ -369,6 +362,12 @@ h1 {
   text-decoration: line-through;
 }
 
+.todo-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
 .action-checkbox,
 .todo-checkbox {
   width: 18px;
@@ -399,6 +398,29 @@ h1 {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 80px auto;
   gap: 10px;
+}
+
+.todo-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.todo-toolbar-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sort-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.sort-button {
+  padding: 8px 10px;
+  font-size: 12px;
 }
 
 .todo-fit-card {
@@ -503,6 +525,24 @@ h1 {
   border: 1px solid var(--border);
   font-size: 20px;
   line-height: 1;
+}
+
+.move-button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  align-self: center;
+}
+
+.move-button:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .status-message {

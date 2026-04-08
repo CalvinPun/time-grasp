@@ -23,7 +23,7 @@
 
       <header class="hero">
         <h1>Time Grasp</h1>
-        <p class="subtitle">A calmer view of what still fits before bed.</p>
+        <p class="subtitle">Tracks how much usable time you have left before bed. Usable time means bedtime minus the routine time you still need to set aside.</p>
       </header>
 
       <section id="countdown-panel" class="tab-panel active" data-panel="countdown">
@@ -36,7 +36,6 @@
             </svg>
             <div class="countdown-ring-content">
               <p id="countdown-display" class="countdown-display">--:--:--</p>
-              <p id="countdown-percent" class="countdown-percent">0% usable</p>
             </div>
           </div>
           <p id="countdown-detail" class="countdown-detail">Add your bedtime and routine to start the countdown.</p>
@@ -85,6 +84,14 @@
             <p class="todo-fit-label">Can I fit this before bed?</p>
             <p id="todo-fit-answer" class="todo-fit-answer">Set your bedtime and routine first.</p>
             <p id="todo-fit-detail" class="todo-fit-detail">We will compare your unfinished task time against your remaining usable time.</p>
+          </div>
+
+          <div class="todo-toolbar">
+            <span class="todo-toolbar-label">Sort by time</span>
+            <div class="sort-controls" role="group" aria-label="Sort to-do list">
+              <button id="sort-ascending" class="ghost-button sort-button" type="button">Ascending</button>
+              <button id="sort-descending" class="ghost-button sort-button" type="button">Descending</button>
+            </div>
           </div>
 
           <form id="todo-form" class="todo-form">

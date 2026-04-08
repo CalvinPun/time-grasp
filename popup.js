@@ -23,13 +23,14 @@ const saveToast = document.querySelector("#save-toast");
 const countdownCard = document.querySelector("#countdown-card");
 const countdownDisplay = document.querySelector("#countdown-display");
 const countdownDetail = document.querySelector("#countdown-detail");
-const countdownPercent = document.querySelector("#countdown-percent");
 const countdownRingProgress = document.querySelector("#countdown-ring-progress");
 const todoForm = document.querySelector("#todo-form");
 const todoInput = document.querySelector("#todo-input");
 const todoMinutesInput = document.querySelector("#todo-minutes");
 const todoList = document.querySelector("#todo-list");
 const todoEmpty = document.querySelector("#todo-empty");
+const sortAscendingButton = document.querySelector("#sort-ascending");
+const sortDescendingButton = document.querySelector("#sort-descending");
 const todoFitCard = document.querySelector("#todo-fit-card");
 const todoFitAnswer = document.querySelector("#todo-fit-answer");
 const todoFitDetail = document.querySelector("#todo-fit-detail");
@@ -205,7 +206,22 @@ todoList.addEventListener("change", async (event) => {
 });
 
 todoList.addEventListener("click", async (event) => {
+  const moveButton = event.target.closest("[data-action='move-todo']");
   const removeButton = event.target.closest("[data-action='remove-todo']");
+
+  if (moveButton) {
+    const settings = await loadSettings();
+    const nextItems = moveTodoItem(
+      Array.isArray(settings.todoItems) ? settings.todoItems : [],
+      moveButton.dataset.todoId,
+      moveButton.dataset.direction
+    );
+
+    await chrome.storage.sync.set({ todoItems: nextItems });
+    renderTodoItems(nextItems);
+    updateTodoFitEstimate(nextItems);
+    return;
+  }
 
   if (!removeButton) {
     return;
@@ -216,6 +232,22 @@ todoList.addEventListener("click", async (event) => {
     return item.id !== removeButton.dataset.todoId;
   });
 
+  await chrome.storage.sync.set({ todoItems: nextItems });
+  renderTodoItems(nextItems);
+  updateTodoFitEstimate(nextItems);
+});
+
+sortAscendingButton.addEventListener("click", async () => {
+  const settings = await loadSettings();
+  const nextItems = sortTodoItemsByMinutes(Array.isArray(settings.todoItems) ? settings.todoItems : [], "asc");
+  await chrome.storage.sync.set({ todoItems: nextItems });
+  renderTodoItems(nextItems);
+  updateTodoFitEstimate(nextItems);
+});
+
+sortDescendingButton.addEventListener("click", async () => {
+  const settings = await loadSettings();
+  const nextItems = sortTodoItemsByMinutes(Array.isArray(settings.todoItems) ? settings.todoItems : [], "desc");
   await chrome.storage.sync.set({ todoItems: nextItems });
   renderTodoItems(nextItems);
   updateTodoFitEstimate(nextItems);
@@ -437,7 +469,6 @@ function renderCountdown(millisecondsLeft, bedtimeDate, totalRoutineMinutes, mil
 
   if (millisecondsLeft <= 0) {
     countdownDisplay.textContent = "Time's up";
-    countdownPercent.textContent = "0% usable";
     countdownDetail.textContent = `Bedtime is ${bedtimeLabel}. Your ${routineLabel} routine should already be starting.`;
     setCountdownProgress(0);
     setCountdownTone("countdown-expired");
@@ -445,7 +476,6 @@ function renderCountdown(millisecondsLeft, bedtimeDate, totalRoutineMinutes, mil
   }
 
   countdownDisplay.textContent = formatDuration(totalSecondsLeft);
-  countdownPercent.textContent = `${Math.round(usableShare * 100)}% usable`;
   countdownDetail.textContent = `Bedtime ${bedtimeLabel}. Routine buffer: ${routineLabel}.`;
   setCountdownProgress(usableShare);
 
@@ -464,7 +494,6 @@ function renderCountdown(millisecondsLeft, bedtimeDate, totalRoutineMinutes, mil
 
 function renderCountdownIdle(message) {
   countdownDisplay.textContent = "--:--:--";
-  countdownPercent.textContent = "0% usable";
   countdownDetail.textContent = message;
   setCountdownProgress(0);
   setCountdownTone("countdown-idle");
@@ -547,14 +576,14 @@ function getStoredTheme() {
 function renderTodoItems(items) {
   todoList.replaceChildren();
 
-  items.forEach((item) => {
-    todoList.append(createTodoListItem(item));
+  items.forEach((item, index) => {
+    todoList.append(createTodoListItem(item, index, items.length));
   });
 
   todoEmpty.hidden = items.length > 0;
 }
 
-function createTodoListItem(item) {
+function createTodoListItem(item, index, totalItems) {
   const listItem = document.createElement("li");
   listItem.className = "todo-item";
 
@@ -577,6 +606,29 @@ function createTodoListItem(item) {
   minutes.className = "todo-minutes";
   minutes.textContent = `${item.minutes} min`;
 
+  const actions = document.createElement("div");
+  actions.className = "todo-actions";
+
+  const moveUpButton = document.createElement("button");
+  moveUpButton.type = "button";
+  moveUpButton.className = "move-button";
+  moveUpButton.textContent = "↑";
+  moveUpButton.dataset.action = "move-todo";
+  moveUpButton.dataset.direction = "up";
+  moveUpButton.dataset.todoId = item.id;
+  moveUpButton.setAttribute("aria-label", `Move ${item.text} up`);
+  moveUpButton.disabled = index === 0;
+
+  const moveDownButton = document.createElement("button");
+  moveDownButton.type = "button";
+  moveDownButton.className = "move-button";
+  moveDownButton.textContent = "↓";
+  moveDownButton.dataset.action = "move-todo";
+  moveDownButton.dataset.direction = "down";
+  moveDownButton.dataset.todoId = item.id;
+  moveDownButton.setAttribute("aria-label", `Move ${item.text} down`);
+  moveDownButton.disabled = index === totalItems - 1;
+
   const removeButton = document.createElement("button");
   removeButton.type = "button";
   removeButton.className = "remove-button";
@@ -585,7 +637,8 @@ function createTodoListItem(item) {
   removeButton.dataset.todoId = item.id;
   removeButton.setAttribute("aria-label", `Remove ${item.text}`);
 
-  listItem.append(checkbox, text, minutes, removeButton);
+  actions.append(moveUpButton, moveDownButton, removeButton);
+  listItem.append(checkbox, text, minutes, actions);
   return listItem;
 }
 
@@ -673,4 +726,31 @@ function getCurrentTodoItemsFromDom() {
       minutes: Number.parseInt(minutes.textContent, 10)
     };
   });
+}
+
+function sortTodoItemsByMinutes(items, direction) {
+  const multiplier = direction === "desc" ? -1 : 1;
+
+  return [...items].sort((left, right) => {
+    return (left.minutes - right.minutes) * multiplier;
+  });
+}
+
+function moveTodoItem(items, todoId, direction) {
+  const nextItems = [...items];
+  const index = nextItems.findIndex((item) => item.id === todoId);
+
+  if (index === -1) {
+    return nextItems;
+  }
+
+  const targetIndex = direction === "up" ? index - 1 : index + 1;
+
+  if (targetIndex < 0 || targetIndex >= nextItems.length) {
+    return nextItems;
+  }
+
+  const [item] = nextItems.splice(index, 1);
+  nextItems.splice(targetIndex, 0, item);
+  return nextItems;
 }
