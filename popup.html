@@ -51,9 +51,20 @@
 
       <section id="settings-panel" class="tab-panel" data-panel="settings" hidden>
         <form id="settings-form" class="settings-form">
-          <label class="field">
+          <label class="field bedtime-field">
             <span>Bedtime</span>
-            <input id="bedtime" name="bedtime" type="time" required>
+            <input
+              id="bedtime"
+              name="bedtime"
+              type="text"
+              inputmode="text"
+              autocomplete="off"
+              placeholder="10:37 PM"
+              aria-expanded="false"
+              aria-controls="bedtime-menu"
+              required
+            >
+            <div id="bedtime-menu" class="bedtime-menu" hidden></div>
           </label>
 
           <section class="field">

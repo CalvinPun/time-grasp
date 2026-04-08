@@ -24,8 +24,6 @@ const ALERT_SOUNDS = {
   test: "final"
 };
 
-let lastNotificationResult = "No notification sent yet";
-
 chrome.runtime.onInstalled.addListener(() => {
   void refreshNotificationAlarms();
 });
@@ -61,25 +59,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
-  if (message?.type === "test-notification") {
-    void sendNotification("Test notification", "Time Grasp notifications are working.", ALERT_SOUNDS.test)
-      .then(() => sendResponse({ ok: true }))
-      .catch((error) => sendResponse({ ok: false, error: String(error) }));
-
-    return true;
-  }
-
   if (message?.type === "preview-sound") {
     void playAlertSound(message.sound || ALERT_SOUNDS.test, message.volume)
       .then(() => sendResponse({ ok: true }))
-      .catch((error) => sendResponse({ ok: false, error: String(error) }));
-
-    return true;
-  }
-
-  if (message?.type === "get-alarm-status") {
-    void getNotificationDebugStatus()
-      .then((status) => sendResponse({ ok: true, status }))
       .catch((error) => sendResponse({ ok: false, error: String(error) }));
 
     return true;
@@ -164,15 +146,24 @@ function getCutoffDate(settings, now) {
 }
 
 function getNextBedtimeDate(timeString, now) {
-  const [hoursText, minutesText] = timeString.split(":");
+  const { hours, minutes } = parseStoredBedtime(timeString);
   const bedtime = new Date(now);
-  bedtime.setHours(Number.parseInt(hoursText, 10), Number.parseInt(minutesText, 10), 0, 0);
+  bedtime.setHours(hours, minutes, 0, 0);
 
   if (bedtime.getTime() <= now.getTime()) {
     bedtime.setDate(bedtime.getDate() + 1);
   }
 
   return bedtime;
+}
+
+function parseStoredBedtime(timeString) {
+  const [hoursText, minutesText] = timeString.split(":");
+
+  return {
+    hours: Number.parseInt(hoursText, 10),
+    minutes: Number.parseInt(minutesText, 10)
+  };
 }
 
 function getSelectedRoutineMinutes(settings) {
@@ -224,11 +215,8 @@ async function sendNotification(title, message, sound) {
     if (settings.notificationSound) {
       await playAlertSound(sound, settings.notificationVolume);
     }
-
-    lastNotificationResult = `Sent "${title}" as ${notificationId}`;
     return notificationId;
   } catch (error) {
-    lastNotificationResult = `Failed to send "${title}": ${String(error)}`;
     throw error;
   }
 }
@@ -284,20 +272,4 @@ async function hasOffscreenDocument(offscreenUrl) {
   });
 
   return contexts.length > 0;
-}
-
-async function getNotificationDebugStatus() {
-  const alarms = await chrome.alarms.getAll();
-  const permissionLevel = await chrome.notifications.getPermissionLevel();
-
-  return {
-    permissionLevel,
-    lastNotificationResult,
-    alarms: alarms
-      .filter((alarm) => Object.values(ALARM_KEYS).includes(alarm.name))
-      .map((alarm) => ({
-        name: alarm.name,
-        scheduledFor: alarm.scheduledTime ?? null
-      }))
-  };
 }

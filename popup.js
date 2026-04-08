@@ -15,6 +15,7 @@ const DEFAULT_SETTINGS = {
 
 const form = document.querySelector("#settings-form");
 const bedtimeInput = document.querySelector("#bedtime");
+const bedtimeMenu = document.querySelector("#bedtime-menu");
 const notify30Input = document.querySelector("#notify-30");
 const notify5Input = document.querySelector("#notify-5");
 const notify0Input = document.querySelector("#notify-0");
@@ -29,7 +30,6 @@ const routineTotal = document.querySelector("#routine-total");
 const saveToast = document.querySelector("#save-toast");
 const countdownCard = document.querySelector("#countdown-card");
 const countdownDisplay = document.querySelector("#countdown-display");
-const countdownDetail = document.querySelector("#countdown-detail");
 const countdownMeta = document.querySelector("#countdown-meta");
 const currentTimeBadge = document.querySelector("#current-time-badge");
 const countdownBedtimeBadge = document.querySelector("#countdown-bedtime-badge");
@@ -56,6 +56,7 @@ let statusMessageTimeoutId = null;
 let autosaveTimeoutId = null;
 const countdownRingCircumference = 2 * Math.PI * 88;
 let todoSortMode = "manual";
+let bedtimeChoices = [];
 
 countdownRingProgress.style.strokeDasharray = String(countdownRingCircumference);
 countdownRingProgress.style.strokeDashoffset = String(countdownRingCircumference);
@@ -90,6 +91,8 @@ function moveTodoItem(items, todoId, direction) {
 initialize();
 
 async function initialize() {
+  bedtimeChoices = buildBedtimeChoices();
+  renderBedtimeMenu();
   const settings = await loadSettings();
   applySettingsToForm(settings);
   await ensureEveningSession(settings);
@@ -102,7 +105,7 @@ function loadSettings() {
 }
 
 function applySettingsToForm(settings) {
-  bedtimeInput.value = settings.bedtime;
+  bedtimeInput.value = formatStoredBedtime(settings.bedtime);
   notify30Input.checked = settings.notify30;
   notify5Input.checked = settings.notify5;
   notify0Input.checked = settings.notify0;
@@ -276,9 +279,30 @@ sortDescendingButton.addEventListener("click", async () => {
 });
 
 bedtimeInput.addEventListener("input", async () => {
+  renderBedtimeMenu(bedtimeInput.value);
+  openBedtimeMenu();
   await ensureEveningSession(await loadSettings());
   await updateCountdownFromForm();
   queueAutosave();
+});
+bedtimeInput.addEventListener("focus", () => {
+  renderBedtimeMenu(bedtimeInput.value);
+  openBedtimeMenu();
+});
+bedtimeInput.addEventListener("click", () => {
+  renderBedtimeMenu(bedtimeInput.value);
+  openBedtimeMenu();
+});
+bedtimeInput.addEventListener("blur", () => {
+  const normalizedBedtime = normalizeBedtimeInput(bedtimeInput.value);
+
+  if (!normalizedBedtime) {
+    window.setTimeout(closeBedtimeMenu, 120);
+    return;
+  }
+
+  bedtimeInput.value = formatStoredBedtime(normalizedBedtime);
+  window.setTimeout(closeBedtimeMenu, 120);
 });
 notify30Input.addEventListener("change", queueAutosave);
 notify5Input.addEventListener("change", queueAutosave);
@@ -348,11 +372,11 @@ function setStatus(message, tone = "") {
 }
 
 async function saveSettings() {
-  const bedtime = bedtimeInput.value;
+  const bedtime = normalizeBedtimeInput(bedtimeInput.value);
   const routineActions = collectRoutineActions();
 
   if (!bedtime) {
-    setStatus("Choose a bedtime first.", "error");
+    setStatus("Choose a bedtime like 10:30 PM.", "error");
     return false;
   }
 
@@ -379,6 +403,7 @@ async function saveSettings() {
   };
 
   await chrome.storage.sync.set(nextSettings);
+  bedtimeInput.value = formatStoredBedtime(bedtime);
   await refreshBackgroundAlarms();
   setStatus("Settings saved.", "success");
   showSaveToast();
@@ -441,6 +466,77 @@ function normalizeRoutineActions(settings) {
   }
 
   return DEFAULT_SETTINGS.routineActions;
+}
+
+function buildBedtimeChoices() {
+  const choices = [];
+
+  for (let hour = 0; hour < 24; hour += 1) {
+    for (let minutes = 0; minutes < 60; minutes += 10) {
+      const storedValue = `${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+      choices.push({
+        storedValue,
+        label: formatStoredBedtime(storedValue)
+      });
+    }
+  }
+
+  return choices;
+}
+
+function renderBedtimeMenu(query = "") {
+  bedtimeMenu.replaceChildren();
+
+  if (normalizeBedtimeInput(query)) {
+    closeBedtimeMenu();
+    return;
+  }
+
+  const normalizedQuery = query.trim().toUpperCase();
+  const matchingChoices = bedtimeChoices.filter((choice) => {
+    if (!normalizedQuery) {
+      return true;
+    }
+
+    return choice.label.toUpperCase().includes(normalizedQuery);
+  });
+
+  if (matchingChoices.length === 0) {
+    closeBedtimeMenu();
+    return;
+  }
+
+  matchingChoices.forEach((choice) => {
+    const optionButton = document.createElement("button");
+    optionButton.type = "button";
+    optionButton.className = "bedtime-option";
+    optionButton.textContent = choice.label;
+    optionButton.dataset.value = choice.storedValue;
+    optionButton.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      bedtimeInput.value = choice.label;
+      closeBedtimeMenu();
+      bedtimeInput.blur();
+      queueAutosave();
+      void updateCountdownFromForm();
+      void ensureEveningSession({ bedtime: choice.storedValue });
+    });
+    bedtimeMenu.append(optionButton);
+  });
+}
+
+function openBedtimeMenu() {
+  if (bedtimeMenu.children.length === 0) {
+    return;
+  }
+
+  bedtimeMenu.hidden = false;
+  bedtimeInput.setAttribute("aria-expanded", "true");
+}
+
+function closeBedtimeMenu() {
+  bedtimeMenu.hidden = true;
+  bedtimeInput.setAttribute("aria-expanded", "false");
 }
 
 function renderRoutineActions(actions) {
@@ -564,7 +660,7 @@ async function startCountdown() {
 }
 
 async function updateCountdownFromForm() {
-  const bedtime = bedtimeInput.value;
+  const bedtime = normalizeBedtimeInput(bedtimeInput.value);
   const routineActions = collectRoutineActions();
   const now = new Date();
   currentTimeBadge.textContent = `Now ${formatClockTime(now)}`;
@@ -584,7 +680,7 @@ async function updateCountdownFromForm() {
   const totalRoutineMinutes = routineActions.reduce((sum, action) => {
     return action.selected ? sum + action.minutes : sum;
   }, 0);
-  const bedtimeDate = getNextBedtimeDate(bedtime, now);
+  const bedtimeDate = getPopupBedtimeDate(bedtime, now);
   const cutoffDate = new Date(bedtimeDate.getTime() - totalRoutineMinutes * 60 * 1000);
   const millisecondsLeft = cutoffDate.getTime() - now.getTime();
   const sessionStart = await ensureEveningSession(await loadSettings());
@@ -640,16 +736,93 @@ function isDraftRoutineActionUsable(action) {
   return Boolean(action.name) && Number.isFinite(action.minutes) && action.minutes >= 0;
 }
 
-function getNextBedtimeDate(timeString, now) {
-  const [hoursText, minutesText] = timeString.split(":");
+function getPopupBedtimeDate(timeString, now) {
+  const { hours, minutes } = parseStoredBedtime(timeString);
   const bedtime = new Date(now);
-  bedtime.setHours(Number.parseInt(hoursText, 10), Number.parseInt(minutesText, 10), 0, 0);
+  bedtime.setHours(hours, minutes, 0, 0);
 
-  if (bedtime.getTime() <= now.getTime()) {
+  // Treat AM bedtimes entered during the afternoon/evening as the next morning.
+  if (hours < 12 && now.getHours() >= 12) {
     bedtime.setDate(bedtime.getDate() + 1);
   }
 
   return bedtime;
+}
+
+function parseStoredBedtime(timeString) {
+  const [hoursText, minutesText] = timeString.split(":");
+
+  return {
+    hours: Number.parseInt(hoursText, 10),
+    minutes: Number.parseInt(minutesText, 10)
+  };
+}
+
+function formatStoredBedtime(timeString) {
+  if (!timeString) {
+    return "";
+  }
+
+  const { hours, minutes } = parseStoredBedtime(timeString);
+  const period = hours >= 12 ? "PM" : "AM";
+  const hour12 = hours % 12 || 12;
+
+  return `${hour12}:${String(minutes).padStart(2, "0")} ${period}`;
+}
+
+function normalizeBedtimeInput(value) {
+  const rawValue = value.trim().toUpperCase();
+
+  if (!rawValue) {
+    return "";
+  }
+
+  const compactTwelveHourMatch = rawValue.match(/^(\d{1,2})(\d{2})\s*([AP]M)$/);
+
+  if (compactTwelveHourMatch) {
+    return normalizeBedtimeInput(`${compactTwelveHourMatch[1]}:${compactTwelveHourMatch[2]} ${compactTwelveHourMatch[3]}`);
+  }
+
+  const twelveHourMatch = rawValue.match(/^(\d{1,2})(?::(\d{1,2}))?\s*([AP]M)$/);
+
+  if (twelveHourMatch) {
+    let hours = Number.parseInt(twelveHourMatch[1], 10);
+    const minutes = Number.parseInt(twelveHourMatch[2] ?? "0", 10);
+    const period = twelveHourMatch[3];
+
+    if (hours < 1 || hours > 12 || minutes < 0 || minutes > 59) {
+      return "";
+    }
+
+    if (period === "AM") {
+      hours = hours % 12;
+    } else if (hours !== 12) {
+      hours += 12;
+    }
+
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+  }
+
+  const compactTwentyFourHourMatch = rawValue.match(/^(\d{1,2})(\d{2})$/);
+
+  if (compactTwentyFourHourMatch) {
+    return normalizeBedtimeInput(`${compactTwentyFourHourMatch[1]}:${compactTwentyFourHourMatch[2]}`);
+  }
+
+  const twentyFourHourMatch = rawValue.match(/^(\d{1,2}):(\d{1,2})$/);
+
+  if (twentyFourHourMatch) {
+    const hours = Number.parseInt(twentyFourHourMatch[1], 10);
+    const minutes = Number.parseInt(twentyFourHourMatch[2], 10);
+
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      return "";
+    }
+
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+  }
+
+  return "";
 }
 
 function formatDuration(totalSeconds) {
@@ -702,6 +875,14 @@ function setActiveTab(tabName) {
     panel.classList.toggle("active", isActive);
   });
 }
+
+document.addEventListener("click", (event) => {
+  if (event.target === bedtimeInput || bedtimeMenu.contains(event.target)) {
+    return;
+  }
+
+  closeBedtimeMenu();
+});
 
 function applyTheme(theme) {
   document.documentElement.dataset.theme = theme === "dark" ? "dark" : "light";
@@ -799,7 +980,7 @@ function clearStatus() {
 
 function updateTodoFitEstimate(todoItems = null) {
   const items = todoItems ?? getCurrentTodoItemsFromDom();
-  const bedtime = bedtimeInput.value;
+  const bedtime = normalizeBedtimeInput(bedtimeInput.value);
   const routineActions = collectRoutineActions();
 
   todoFitCard.className = "todo-fit-card";
@@ -813,7 +994,7 @@ function updateTodoFitEstimate(todoItems = null) {
   const totalRoutineMinutes = routineActions.reduce((sum, action) => {
     return action.selected ? sum + action.minutes : sum;
   }, 0);
-  const bedtimeDate = getNextBedtimeDate(bedtime, new Date());
+  const bedtimeDate = getPopupBedtimeDate(bedtime, new Date());
   const cutoffDate = new Date(bedtimeDate.getTime() - totalRoutineMinutes * 60 * 1000);
   const remainingMinutes = Math.max(0, Math.floor((cutoffDate.getTime() - Date.now()) / 60000));
   const todoMinutes = items.reduce((sum, item) => {
@@ -880,14 +1061,14 @@ function setTodoSortMode(mode) {
 }
 
 async function ensureEveningSession(settings) {
-  const bedtime = bedtimeInput.value || settings.bedtime;
+  const bedtime = normalizeBedtimeInput(bedtimeInput.value) || settings.bedtime;
 
   if (!bedtime) {
     return null;
   }
 
   const now = new Date();
-  const bedtimeDate = getNextBedtimeDate(bedtime, now);
+  const bedtimeDate = getPopupBedtimeDate(bedtime, now);
   const eveningAnchor = getEveningAnchor(now);
   const existingSession = settings.eveningSession ? new Date(settings.eveningSession) : null;
 

@@ -335,6 +335,10 @@ h1 {
   gap: 8px;
 }
 
+.bedtime-field {
+  position: relative;
+}
+
 .field span,
 .field legend {
   color: var(--muted-strong);
@@ -360,6 +364,53 @@ h1 {
 .todo-minutes-input:focus {
   outline: 2px solid color-mix(in srgb, var(--accent) 58%, transparent);
   outline-offset: 2px;
+}
+
+.bedtime-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: grid;
+  gap: 4px;
+  max-height: 220px;
+  padding: 8px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-soft);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
+}
+
+.bedtime-menu[hidden] {
+  display: none !important;
+}
+
+.bedtime-option {
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bedtime-option:hover,
+.bedtime-option.active {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.bedtime-empty {
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .section-heading {
