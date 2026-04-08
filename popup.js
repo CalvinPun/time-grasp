@@ -28,6 +28,7 @@ const tabPanels = [...document.querySelectorAll(".tab-panel")];
 
 let saveToastTimeoutId = null;
 let countdownIntervalId = null;
+let statusMessageTimeoutId = null;
 const countdownRingCircumference = 2 * Math.PI * 88;
 
 countdownRingProgress.style.strokeDasharray = String(countdownRingCircumference);
@@ -131,11 +132,20 @@ tabButtons.forEach((button) => {
 });
 
 function setStatus(message, tone = "") {
+  if (statusMessageTimeoutId) {
+    window.clearTimeout(statusMessageTimeoutId);
+    statusMessageTimeoutId = null;
+  }
+
   statusMessage.textContent = message;
   statusMessage.className = "status-message";
 
   if (tone) {
     statusMessage.classList.add(tone);
+  }
+
+  if (message) {
+    statusMessageTimeoutId = window.setTimeout(clearStatus, 2200);
   }
 }
 
@@ -377,10 +387,21 @@ function setActiveTab(tabName) {
   });
 
   document.querySelector(".hero").hidden = tabName === "settings";
+  clearStatus();
 
   tabPanels.forEach((panel) => {
     const isActive = panel.dataset.panel === tabName;
     panel.hidden = !isActive;
     panel.classList.toggle("active", isActive);
   });
+}
+
+function clearStatus() {
+  if (statusMessageTimeoutId) {
+    window.clearTimeout(statusMessageTimeoutId);
+    statusMessageTimeoutId = null;
+  }
+
+  statusMessage.textContent = "";
+  statusMessage.className = "status-message";
 }
