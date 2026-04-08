@@ -3,6 +3,7 @@ const DEFAULT_SETTINGS = {
   routineActions: [
     { name: "Get ready", minutes: 45 }
   ],
+  todoItems: [],
   notify30: true,
   notify5: true,
   notify0: true
@@ -23,6 +24,14 @@ const countdownDisplay = document.querySelector("#countdown-display");
 const countdownDetail = document.querySelector("#countdown-detail");
 const countdownPercent = document.querySelector("#countdown-percent");
 const countdownRingProgress = document.querySelector("#countdown-ring-progress");
+const todoForm = document.querySelector("#todo-form");
+const todoInput = document.querySelector("#todo-input");
+const todoMinutesInput = document.querySelector("#todo-minutes");
+const todoList = document.querySelector("#todo-list");
+const todoEmpty = document.querySelector("#todo-empty");
+const todoFitCard = document.querySelector("#todo-fit-card");
+const todoFitAnswer = document.querySelector("#todo-fit-answer");
+const todoFitDetail = document.querySelector("#todo-fit-detail");
 const tabButtons = [...document.querySelectorAll(".tab-button")];
 const tabPanels = [...document.querySelectorAll(".tab-panel")];
 
@@ -53,6 +62,8 @@ function applySettingsToForm(settings) {
   notify5Input.checked = settings.notify5;
   notify0Input.checked = settings.notify0;
   renderRoutineActions(normalizeRoutineActions(settings));
+  renderTodoItems(Array.isArray(settings.todoItems) ? settings.todoItems : []);
+  updateTodoFitEstimate();
 }
 
 form.addEventListener("submit", async (event) => {
@@ -72,7 +83,7 @@ form.addEventListener("submit", async (event) => {
   }
 
   if (!routineActions.every(isValidRoutineAction)) {
-    setStatus("Each action needs a name and 0 to 300 minutes.", "error");
+    setStatus("Each action needs a name and a valid minute value.", "error");
     return;
   }
 
@@ -88,6 +99,7 @@ form.addEventListener("submit", async (event) => {
   setStatus("Settings saved.", "success");
   showSaveToast();
   startCountdown();
+  updateTodoFitEstimate();
   setActiveTab("countdown");
 });
 
@@ -122,6 +134,68 @@ actionsList.addEventListener("click", (event) => {
 actionsList.addEventListener("input", () => {
   updateRoutineTotal();
   updateCountdownFromForm();
+  updateTodoFitEstimate();
+});
+
+todoForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const text = todoInput.value.trim();
+  const minutes = Number.parseInt(todoMinutesInput.value, 10);
+
+  if (!text || !Number.isFinite(minutes) || minutes < 1) {
+    return;
+  }
+
+  const settings = await loadSettings();
+  const nextItems = [
+    ...(Array.isArray(settings.todoItems) ? settings.todoItems : []),
+    createTodoItem(text, minutes)
+  ];
+
+  await chrome.storage.sync.set({ todoItems: nextItems });
+  renderTodoItems(nextItems);
+  todoInput.value = "";
+  todoMinutesInput.value = "";
+  updateTodoFitEstimate(nextItems);
+});
+
+todoList.addEventListener("change", async (event) => {
+  const checkbox = event.target.closest(".todo-checkbox");
+
+  if (!checkbox) {
+    return;
+  }
+
+  const settings = await loadSettings();
+  const nextItems = (Array.isArray(settings.todoItems) ? settings.todoItems : []).map((item) => {
+    if (item.id !== checkbox.dataset.todoId) {
+      return item;
+    }
+
+    return { ...item, done: checkbox.checked };
+  });
+
+  await chrome.storage.sync.set({ todoItems: nextItems });
+  renderTodoItems(nextItems);
+  updateTodoFitEstimate(nextItems);
+});
+
+todoList.addEventListener("click", async (event) => {
+  const removeButton = event.target.closest("[data-action='remove-todo']");
+
+  if (!removeButton) {
+    return;
+  }
+
+  const settings = await loadSettings();
+  const nextItems = (Array.isArray(settings.todoItems) ? settings.todoItems : []).filter((item) => {
+    return item.id !== removeButton.dataset.todoId;
+  });
+
+  await chrome.storage.sync.set({ todoItems: nextItems });
+  renderTodoItems(nextItems);
+  updateTodoFitEstimate(nextItems);
 });
 
 bedtimeInput.addEventListener("input", updateCountdownFromForm);
@@ -194,8 +268,7 @@ function createActionRow(action) {
   minutesInput.type = "number";
   minutesInput.className = "action-minutes";
   minutesInput.min = "0";
-  minutesInput.max = "300";
-  minutesInput.step = "5";
+  minutesInput.step = "1";
   minutesInput.placeholder = "Min";
   minutesInput.value = String(action.minutes);
 
@@ -230,14 +303,22 @@ function updateRoutineTotal() {
 function isValidRoutineAction(action) {
   return Boolean(action.name)
     && Number.isFinite(action.minutes)
-    && action.minutes >= 0
-    && action.minutes <= 300;
+    && action.minutes >= 0;
 }
 
 function createEmptyRoutineAction() {
   return {
     name: "",
     minutes: 5
+  };
+}
+
+function createTodoItem(text, minutes) {
+  return {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    text,
+    minutes,
+    done: false
   };
 }
 
@@ -335,7 +416,7 @@ function setCountdownTone(toneClass) {
 }
 
 function isDraftRoutineActionUsable(action) {
-  return Boolean(action.name) && Number.isFinite(action.minutes) && action.minutes >= 0 && action.minutes <= 300;
+  return Boolean(action.name) && Number.isFinite(action.minutes) && action.minutes >= 0;
 }
 
 function getNextBedtimeDate(timeString, now) {
@@ -386,7 +467,7 @@ function setActiveTab(tabName) {
     button.classList.toggle("active", button.dataset.tab === tabName);
   });
 
-  document.querySelector(".hero").hidden = tabName === "settings";
+  document.querySelector(".hero").hidden = tabName !== "countdown";
   clearStatus();
 
   tabPanels.forEach((panel) => {
@@ -394,6 +475,51 @@ function setActiveTab(tabName) {
     panel.hidden = !isActive;
     panel.classList.toggle("active", isActive);
   });
+}
+
+function renderTodoItems(items) {
+  todoList.replaceChildren();
+
+  items.forEach((item) => {
+    todoList.append(createTodoListItem(item));
+  });
+
+  todoEmpty.hidden = items.length > 0;
+}
+
+function createTodoListItem(item) {
+  const listItem = document.createElement("li");
+  listItem.className = "todo-item";
+
+  if (item.done) {
+    listItem.classList.add("done");
+  }
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.className = "todo-checkbox";
+  checkbox.checked = Boolean(item.done);
+  checkbox.dataset.todoId = item.id;
+  checkbox.setAttribute("aria-label", `Mark ${item.text} complete`);
+
+  const text = document.createElement("span");
+  text.className = "todo-text";
+  text.textContent = item.text;
+
+  const minutes = document.createElement("span");
+  minutes.className = "todo-minutes";
+  minutes.textContent = `${item.minutes} min`;
+
+  const removeButton = document.createElement("button");
+  removeButton.type = "button";
+  removeButton.className = "remove-button";
+  removeButton.textContent = "×";
+  removeButton.dataset.action = "remove-todo";
+  removeButton.dataset.todoId = item.id;
+  removeButton.setAttribute("aria-label", `Remove ${item.text}`);
+
+  listItem.append(checkbox, text, minutes, removeButton);
+  return listItem;
 }
 
 function clearStatus() {
@@ -404,4 +530,71 @@ function clearStatus() {
 
   statusMessage.textContent = "";
   statusMessage.className = "status-message";
+}
+
+function updateTodoFitEstimate(todoItems = null) {
+  const items = todoItems ?? getCurrentTodoItemsFromDom();
+  const bedtime = bedtimeInput.value;
+  const routineActions = collectRoutineActions();
+
+  todoFitCard.className = "todo-fit-card";
+
+  if (!bedtime || routineActions.some((action) => !isDraftRoutineActionUsable(action))) {
+    todoFitAnswer.textContent = "Set bedtime first";
+    todoFitDetail.textContent = "We will compare your unfinished task time against your remaining usable time.";
+    return;
+  }
+
+  const totalRoutineMinutes = routineActions.reduce((sum, action) => sum + action.minutes, 0);
+  const bedtimeDate = getNextBedtimeDate(bedtime, new Date());
+  const cutoffDate = new Date(bedtimeDate.getTime() - totalRoutineMinutes * 60 * 1000);
+  const remainingMinutes = Math.max(0, Math.floor((cutoffDate.getTime() - Date.now()) / 60000));
+  const todoMinutes = items.reduce((sum, item) => {
+    if (item.done) {
+      return sum;
+    }
+
+    return sum + (Number.isFinite(item.minutes) ? item.minutes : 0);
+  }, 0);
+
+  if (todoMinutes === 0) {
+    todoFitAnswer.textContent = "Yes";
+    todoFitDetail.textContent = `You have ${remainingMinutes} min left and no unfinished tasks right now.`;
+    todoFitCard.classList.add("fits");
+    return;
+  }
+
+  const difference = remainingMinutes - todoMinutes;
+
+  if (difference >= 15) {
+    todoFitAnswer.textContent = "Yes";
+    todoFitDetail.textContent = `${todoMinutes} min of unfinished tasks fits inside ${remainingMinutes} min left.`;
+    todoFitCard.classList.add("fits");
+    return;
+  }
+
+  if (difference >= 0) {
+    todoFitAnswer.textContent = "Maybe";
+    todoFitDetail.textContent = `${todoMinutes} min of tasks fits, but with only ${difference} min of buffer.`;
+    todoFitCard.classList.add("tight");
+    return;
+  }
+
+  todoFitAnswer.textContent = "No";
+  todoFitDetail.textContent = `You are over by ${Math.abs(difference)} min: ${todoMinutes} min of tasks vs ${remainingMinutes} min left.`;
+  todoFitCard.classList.add("over");
+}
+
+function getCurrentTodoItemsFromDom() {
+  return [...todoList.querySelectorAll(".todo-item")].map((item) => {
+    const checkbox = item.querySelector(".todo-checkbox");
+    const text = item.querySelector(".todo-text");
+    const minutes = item.querySelector(".todo-minutes");
+
+    return {
+      done: checkbox.checked,
+      text: text.textContent,
+      minutes: Number.parseInt(minutes.textContent, 10)
+    };
+  });
 }

@@ -10,6 +10,7 @@
     <main class="app">
       <nav class="tab-bar" aria-label="Popup sections">
         <button id="countdown-tab" class="tab-button active" type="button" data-tab="countdown">Countdown</button>
+        <button id="todo-tab" class="tab-button" type="button" data-tab="todo">To-Do</button>
         <button id="settings-tab" class="tab-button" type="button" data-tab="settings">Settings</button>
       </nav>
 
@@ -69,6 +70,25 @@
 
           <button id="save-button" class="save-button" type="submit">Save settings</button>
         </form>
+      </section>
+
+      <section id="todo-panel" class="tab-panel" data-panel="todo" hidden>
+        <section class="todo-card">
+          <div id="todo-fit-card" class="todo-fit-card">
+            <p class="todo-fit-label">Can I fit this before bed?</p>
+            <p id="todo-fit-answer" class="todo-fit-answer">Set your bedtime and routine first.</p>
+            <p id="todo-fit-detail" class="todo-fit-detail">We will compare your unfinished task time against your remaining usable time.</p>
+          </div>
+
+          <form id="todo-form" class="todo-form">
+            <input id="todo-input" class="todo-input" type="text" maxlength="80" placeholder="Add a task" aria-label="Add a task">
+            <input id="todo-minutes" class="todo-minutes-input" type="number" min="1" step="1" placeholder="Min" aria-label="Task minutes">
+            <button class="save-button" type="submit">Add task</button>
+          </form>
+
+          <ul id="todo-list" class="todo-list" aria-live="polite"></ul>
+          <p id="todo-empty" class="todo-empty">No tasks yet. Add one to get started.</p>
+        </section>
       </section>
 
       <p id="status-message" class="status-message" role="status" aria-live="polite"></p>
