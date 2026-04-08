@@ -11,14 +11,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return false;
   }
 
-  void playAlertSound(message.sound)
+  void playAlertSound(message.sound, message.volume)
     .then(() => sendResponse({ ok: true }))
     .catch((error) => sendResponse({ ok: false, error: String(error) }));
 
   return true;
 });
 
-async function playAlertSound(sound) {
+async function playAlertSound(sound, volume) {
   const filePath = ALERT_AUDIO[sound];
 
   if (!filePath) {
@@ -31,6 +31,14 @@ async function playAlertSound(sound) {
   }
 
   activeAudio = new Audio(chrome.runtime.getURL(filePath));
-  activeAudio.volume = 1;
+  activeAudio.volume = normalizeVolume(volume);
   await activeAudio.play();
+}
+
+function normalizeVolume(value) {
+  if (!Number.isFinite(value)) {
+    return 0.8;
+  }
+
+  return Math.min(1, Math.max(0, value / 100));
 }

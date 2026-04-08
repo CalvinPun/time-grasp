@@ -9,7 +9,8 @@ const DEFAULT_SETTINGS = {
   notify30: true,
   notify5: true,
   notify0: true,
-  notificationSound: true
+  notificationSound: true,
+  notificationVolume: 80
 };
 
 const form = document.querySelector("#settings-form");
@@ -18,7 +19,9 @@ const notify30Input = document.querySelector("#notify-30");
 const notify5Input = document.querySelector("#notify-5");
 const notify0Input = document.querySelector("#notify-0");
 const notificationSoundInput = document.querySelector("#notification-sound");
-const testNotificationButton = document.querySelector("#test-notification-button");
+const playSoundButton = document.querySelector("#play-sound-button");
+const notificationVolumeInput = document.querySelector("#notification-volume");
+const notificationVolumeValue = document.querySelector("#notification-volume-value");
 const statusMessage = document.querySelector("#status-message");
 const actionsList = document.querySelector("#routine-actions");
 const addActionButton = document.querySelector("#add-action-button");
@@ -104,6 +107,8 @@ function applySettingsToForm(settings) {
   notify5Input.checked = settings.notify5;
   notify0Input.checked = settings.notify0;
   notificationSoundInput.checked = settings.notificationSound;
+  notificationVolumeInput.value = String(normalizeNotificationVolume(settings.notificationVolume));
+  updateNotificationVolumeValue();
   renderRoutineActions(normalizeRoutineActions(settings));
   renderTodoItems(Array.isArray(settings.todoItems) ? settings.todoItems : []);
   applyTheme(settings.theme);
@@ -279,17 +284,25 @@ notify30Input.addEventListener("change", queueAutosave);
 notify5Input.addEventListener("change", queueAutosave);
 notify0Input.addEventListener("change", queueAutosave);
 notificationSoundInput.addEventListener("change", queueAutosave);
-testNotificationButton.addEventListener("click", async () => {
+notificationVolumeInput.addEventListener("input", () => {
+  updateNotificationVolumeValue();
+  queueAutosave();
+});
+playSoundButton.addEventListener("click", async () => {
   try {
-    const response = await chrome.runtime.sendMessage({ type: "test-notification" });
+    const response = await chrome.runtime.sendMessage({
+      type: "preview-sound",
+      sound: "final",
+      volume: getNotificationVolume()
+    });
 
     if (!response?.ok) {
-      throw new Error(response?.error || "Unable to send test notification.");
+      throw new Error(response?.error || "Unable to play sound preview.");
     }
 
-    setStatus("Test notification sent.", "success");
+    setStatus("Playing sound preview.", "success");
   } catch (error) {
-    setStatus(`Test notification failed: ${error.message || String(error)}`, "error");
+    setStatus(`Sound preview failed: ${error.message || String(error)}`, "error");
   }
 });
 tabButtons.forEach((button) => {
@@ -309,6 +322,7 @@ themeToggle.addEventListener("click", async () => {
     notify5: settings.notify5,
     notify0: settings.notify0,
     notificationSound: settings.notificationSound,
+    notificationVolume: normalizeNotificationVolume(settings.notificationVolume),
     theme: nextTheme
   });
 
@@ -360,7 +374,8 @@ async function saveSettings() {
     notify30: notify30Input.checked,
     notify5: notify5Input.checked,
     notify0: notify0Input.checked,
-    notificationSound: notificationSoundInput.checked
+    notificationSound: notificationSoundInput.checked,
+    notificationVolume: getNotificationVolume()
   };
 
   await chrome.storage.sync.set(nextSettings);
@@ -380,6 +395,22 @@ function queueAutosave() {
   autosaveTimeoutId = window.setTimeout(() => {
     void saveSettings();
   }, 450);
+}
+
+function updateNotificationVolumeValue() {
+  notificationVolumeValue.textContent = `${getNotificationVolume()}%`;
+}
+
+function getNotificationVolume() {
+  return normalizeNotificationVolume(Number.parseInt(notificationVolumeInput.value, 10));
+}
+
+function normalizeNotificationVolume(value) {
+  if (!Number.isFinite(value)) {
+    return DEFAULT_SETTINGS.notificationVolume;
+  }
+
+  return Math.min(100, Math.max(0, Math.round(value)));
 }
 
 async function refreshBackgroundAlarms() {

@@ -4,6 +4,7 @@ const SETTINGS_DEFAULTS = {
     { name: "Get ready", minutes: 45, selected: true }
   ],
   notificationSound: true,
+  notificationVolume: 80,
   notify30: true,
   notify5: true,
   notify0: true
@@ -42,6 +43,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     changes.bedtime
     || changes.routineActions
     || changes.notificationSound
+    || changes.notificationVolume
     || changes.notify30
     || changes.notify5
     || changes.notify0
@@ -61,6 +63,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   if (message?.type === "test-notification") {
     void sendNotification("Test notification", "Time Grasp notifications are working.", ALERT_SOUNDS.test)
+      .then(() => sendResponse({ ok: true }))
+      .catch((error) => sendResponse({ ok: false, error: String(error) }));
+
+    return true;
+  }
+
+  if (message?.type === "preview-sound") {
+    void playAlertSound(message.sound || ALERT_SOUNDS.test, message.volume)
       .then(() => sendResponse({ ok: true }))
       .catch((error) => sendResponse({ ok: false, error: String(error) }));
 
@@ -212,7 +222,7 @@ async function sendNotification(title, message, sound) {
     });
 
     if (settings.notificationSound) {
-      await playAlertSound(sound);
+      await playAlertSound(sound, settings.notificationVolume);
     }
 
     lastNotificationResult = `Sent "${title}" as ${notificationId}`;
@@ -223,7 +233,7 @@ async function sendNotification(title, message, sound) {
   }
 }
 
-async function playAlertSound(sound) {
+async function playAlertSound(sound, volume) {
   if (!sound) {
     return;
   }
@@ -232,12 +242,21 @@ async function playAlertSound(sound) {
 
   const response = await chrome.runtime.sendMessage({
     type: "play-alert-sound",
-    sound
+    sound,
+    volume: normalizeNotificationVolume(volume)
   });
 
   if (!response?.ok) {
     throw new Error(response?.error || "Unable to play alert sound.");
   }
+}
+
+function normalizeNotificationVolume(value) {
+  if (!Number.isFinite(value)) {
+    return SETTINGS_DEFAULTS.notificationVolume;
+  }
+
+  return Math.min(100, Math.max(0, Math.round(value)));
 }
 
 async function ensureOffscreenDocument() {

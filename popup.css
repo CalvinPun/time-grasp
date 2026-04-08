@@ -539,6 +539,41 @@ h1 {
   margin-top: 10px;
 }
 
+.sound-controls {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.sound-volume {
+  display: grid;
+  gap: 8px;
+  color: var(--muted-strong);
+}
+
+.sound-volume-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.sound-volume input[type="range"] {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.sound-volume-value {
+  min-width: 40px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
 .save-button,
 .ghost-button,
 .remove-button {

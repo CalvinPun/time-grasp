@@ -83,10 +83,19 @@
               <input id="notification-sound" name="notificationSound" type="checkbox">
               <span>Play sound</span>
             </label>
+            <div class="sound-controls">
+              <button id="play-sound-button" class="ghost-button" type="button">Play sound</button>
+              <label class="sound-volume" for="notification-volume">
+                <span>Volume</span>
+                <div class="sound-volume-row">
+                  <input id="notification-volume" name="notificationVolume" type="range" min="0" max="100" step="1">
+                  <span id="notification-volume-value" class="sound-volume-value">80%</span>
+                </div>
+              </label>
+            </div>
           </fieldset>
 
           <div class="settings-actions">
-            <button id="test-notification-button" class="ghost-button" type="button">Send test</button>
             <button id="save-button" class="save-button" type="submit">Save settings</button>
           </div>
         </form>
