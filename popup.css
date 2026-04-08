@@ -175,7 +175,7 @@ h1 {
 .todo-card {
   display: grid;
   gap: 14px;
-  padding: 18px;
+  padding: 16px;
   border-radius: 24px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -184,6 +184,7 @@ h1 {
 
 .countdown-card {
   justify-items: center;
+  gap: 12px;
 }
 
 .countdown-idle {
@@ -213,15 +214,35 @@ h1 {
   text-transform: uppercase;
 }
 
+.countdown-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.countdown-now {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .countdown-ring-wrap {
   position: relative;
-  width: 222px;
-  height: 222px;
+  width: 252px;
+  height: 252px;
 }
 
 .countdown-ring {
-  width: 222px;
-  height: 222px;
+  width: 252px;
+  height: 252px;
   transform: rotate(-90deg);
 }
 
@@ -272,17 +293,37 @@ h1 {
   text-align: center;
 }
 
-.countdown-detail {
-  margin: 0;
+.countdown-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.countdown-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
   color: var(--muted-strong);
-  line-height: 1.45;
-  font-size: 14px;
-  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .settings-form {
   display: grid;
   gap: 14px;
+}
+
+.settings-actions {
+  position: sticky;
+  bottom: 0;
+  padding-top: 14px;
+  margin-top: 6px;
+  background: linear-gradient(180deg, transparent 0%, var(--bg) 42%);
 }
 
 .field {
@@ -376,6 +417,13 @@ h1 {
   accent-color: var(--accent);
 }
 
+.checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
 .action-minutes,
 .todo-minutes-input {
   text-align: right;
@@ -421,6 +469,12 @@ h1 {
 .sort-button {
   padding: 8px 10px;
   font-size: 12px;
+}
+
+.sort-button.active {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
 }
 
 .todo-fit-card {
@@ -494,7 +548,8 @@ h1 {
 .ghost-button:hover,
 .remove-button:hover,
 .tab-button:hover,
-.theme-toggle:hover {
+.theme-toggle:hover,
+.move-button:hover {
   transform: translateY(-1px);
 }
 
@@ -503,10 +558,12 @@ h1 {
   background: var(--accent);
   color: var(--bg);
   font-weight: 700;
+  border: 1px solid var(--accent);
 }
 
 .save-button:hover {
-  background: var(--accent-strong);
+  background: var(--bg);
+  color: var(--accent);
 }
 
 .ghost-button {
@@ -515,6 +572,25 @@ h1 {
   color: var(--text);
   border: 1px solid var(--border);
   font-weight: 700;
+}
+
+.ghost-button:hover,
+.tab-button:hover,
+.remove-button:hover,
+.move-button:hover {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+
+.tab-button:hover {
+  box-shadow: inset 0 0 0 1px var(--text);
+}
+
+.theme-toggle:hover {
+  background: var(--surface-strong);
+  color: var(--text);
+  border-color: var(--border-strong);
 }
 
 .remove-button {
@@ -543,6 +619,10 @@ h1 {
 .move-button:disabled {
   opacity: 0.35;
   cursor: default;
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--border);
+  transform: none;
 }
 
 .status-message {

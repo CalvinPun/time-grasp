@@ -5,6 +5,7 @@ const DEFAULT_SETTINGS = {
   ],
   todoItems: [],
   theme: "light",
+  eveningSession: null,
   notify30: true,
   notify5: true,
   notify0: true
@@ -23,6 +24,11 @@ const saveToast = document.querySelector("#save-toast");
 const countdownCard = document.querySelector("#countdown-card");
 const countdownDisplay = document.querySelector("#countdown-display");
 const countdownDetail = document.querySelector("#countdown-detail");
+const countdownMeta = document.querySelector("#countdown-meta");
+const currentTimeBadge = document.querySelector("#current-time-badge");
+const countdownBedtimeBadge = document.querySelector("#countdown-bedtime-badge");
+const countdownRoutineBadge = document.querySelector("#countdown-routine-badge");
+const countdownFinishBadge = document.querySelector("#countdown-finish-badge");
 const countdownRingProgress = document.querySelector("#countdown-ring-progress");
 const todoForm = document.querySelector("#todo-form");
 const todoInput = document.querySelector("#todo-input");
@@ -42,6 +48,7 @@ let saveToastTimeoutId = null;
 let countdownIntervalId = null;
 let statusMessageTimeoutId = null;
 const countdownRingCircumference = 2 * Math.PI * 88;
+let todoSortMode = "manual";
 
 countdownRingProgress.style.strokeDasharray = String(countdownRingCircumference);
 countdownRingProgress.style.strokeDashoffset = String(countdownRingCircumference);
@@ -51,7 +58,8 @@ initialize();
 async function initialize() {
   const settings = await loadSettings();
   applySettingsToForm(settings);
-  startCountdown();
+  await ensureEveningSession(settings);
+  await startCountdown();
   setActiveTab("countdown");
 }
 
@@ -95,6 +103,7 @@ form.addEventListener("submit", async (event) => {
     bedtime,
     routineActions,
     theme: getStoredTheme(),
+    eveningSession: (await loadSettings()).eveningSession,
     notify30: notify30Input.checked,
     notify5: notify5Input.checked,
     notify0: notify0Input.checked
@@ -218,6 +227,7 @@ todoList.addEventListener("click", async (event) => {
     );
 
     await chrome.storage.sync.set({ todoItems: nextItems });
+    setTodoSortMode("manual");
     renderTodoItems(nextItems);
     updateTodoFitEstimate(nextItems);
     return;
@@ -241,6 +251,7 @@ sortAscendingButton.addEventListener("click", async () => {
   const settings = await loadSettings();
   const nextItems = sortTodoItemsByMinutes(Array.isArray(settings.todoItems) ? settings.todoItems : [], "asc");
   await chrome.storage.sync.set({ todoItems: nextItems });
+  setTodoSortMode("asc");
   renderTodoItems(nextItems);
   updateTodoFitEstimate(nextItems);
 });
@@ -249,11 +260,15 @@ sortDescendingButton.addEventListener("click", async () => {
   const settings = await loadSettings();
   const nextItems = sortTodoItemsByMinutes(Array.isArray(settings.todoItems) ? settings.todoItems : [], "desc");
   await chrome.storage.sync.set({ todoItems: nextItems });
+  setTodoSortMode("desc");
   renderTodoItems(nextItems);
   updateTodoFitEstimate(nextItems);
 });
 
-bedtimeInput.addEventListener("input", updateCountdownFromForm);
+bedtimeInput.addEventListener("input", async () => {
+  await ensureEveningSession(await loadSettings());
+  await updateCountdownFromForm();
+});
 tabButtons.forEach((button) => {
   button.addEventListener("click", () => {
     setActiveTab(button.dataset.tab);
@@ -425,18 +440,22 @@ function showSaveToast() {
   }, 1600);
 }
 
-function startCountdown() {
+async function startCountdown() {
   if (countdownIntervalId) {
     window.clearInterval(countdownIntervalId);
   }
 
-  updateCountdownFromForm();
-  countdownIntervalId = window.setInterval(updateCountdownFromForm, 1000);
+  await updateCountdownFromForm();
+  countdownIntervalId = window.setInterval(() => {
+    void updateCountdownFromForm();
+  }, 1000);
 }
 
-function updateCountdownFromForm() {
+async function updateCountdownFromForm() {
   const bedtime = bedtimeInput.value;
   const routineActions = collectRoutineActions();
+  const now = new Date();
+  currentTimeBadge.textContent = `Now ${formatClockTime(now)}`;
 
   if (!bedtime) {
     renderCountdownIdle("Add your bedtime and routine to start the countdown.");
@@ -453,30 +472,32 @@ function updateCountdownFromForm() {
   const totalRoutineMinutes = routineActions.reduce((sum, action) => {
     return action.selected ? sum + action.minutes : sum;
   }, 0);
-  const bedtimeDate = getNextBedtimeDate(bedtime, new Date());
+  const bedtimeDate = getNextBedtimeDate(bedtime, now);
   const cutoffDate = new Date(bedtimeDate.getTime() - totalRoutineMinutes * 60 * 1000);
-  const millisecondsLeft = cutoffDate.getTime() - Date.now();
-  const millisecondsUntilBed = bedtimeDate.getTime() - Date.now();
+  const millisecondsLeft = cutoffDate.getTime() - now.getTime();
+  const sessionStart = await ensureEveningSession(await loadSettings());
+  const totalUsableWindow = getEveningWindowUntilCutoff(cutoffDate, now, sessionStart);
 
-  renderCountdown(millisecondsLeft, bedtimeDate, totalRoutineMinutes, millisecondsUntilBed);
+  renderCountdown(millisecondsLeft, bedtimeDate, cutoffDate, totalRoutineMinutes, totalUsableWindow);
 }
 
-function renderCountdown(millisecondsLeft, bedtimeDate, totalRoutineMinutes, millisecondsUntilBed) {
-  const totalSecondsLeft = Math.floor(millisecondsLeft / 1000);
+function renderCountdown(millisecondsLeft, bedtimeDate, cutoffDate, totalRoutineMinutes, totalUsableWindow) {
+  const totalSecondsLeft = Math.max(0, Math.ceil(millisecondsLeft / 1000));
   const bedtimeLabel = formatClockTime(bedtimeDate);
+  const cutoffLabel = formatClockTime(cutoffDate);
   const routineLabel = totalRoutineMinutes === 1 ? "1 min" : `${totalRoutineMinutes} min`;
-  const usableShare = getUsableShare(millisecondsLeft, millisecondsUntilBed);
+  const usableShare = getUsableShare(millisecondsLeft, totalUsableWindow);
 
-  if (millisecondsLeft <= 0) {
+  if (millisecondsLeft < 0) {
     countdownDisplay.textContent = "Time's up";
-    countdownDetail.textContent = `Bedtime is ${bedtimeLabel}. Your ${routineLabel} routine should already be starting.`;
+    renderCountdownMeta(bedtimeLabel, routineLabel, cutoffLabel);
     setCountdownProgress(0);
     setCountdownTone("countdown-expired");
     return;
   }
 
   countdownDisplay.textContent = formatDuration(totalSecondsLeft);
-  countdownDetail.textContent = `Bedtime ${bedtimeLabel}. Routine buffer: ${routineLabel}.`;
+  renderCountdownMeta(bedtimeLabel, routineLabel, cutoffLabel);
   setCountdownProgress(usableShare);
 
   if (millisecondsLeft <= 15 * 60 * 1000) {
@@ -494,7 +515,7 @@ function renderCountdown(millisecondsLeft, bedtimeDate, totalRoutineMinutes, mil
 
 function renderCountdownIdle(message) {
   countdownDisplay.textContent = "--:--:--";
-  countdownDetail.textContent = message;
+  countdownMeta.hidden = true;
   setCountdownProgress(0);
   setCountdownTone("countdown-idle");
 }
@@ -542,12 +563,17 @@ function setCountdownProgress(progress) {
   countdownRingProgress.style.strokeDashoffset = String(offset);
 }
 
-function getUsableShare(millisecondsLeft, millisecondsUntilBed) {
-  if (millisecondsLeft <= 0 || millisecondsUntilBed <= 0) {
+function getUsableShare(millisecondsLeft, totalUsableWindow) {
+  if (millisecondsLeft <= 0 || totalUsableWindow <= 0) {
     return 0;
   }
 
-  return millisecondsLeft / millisecondsUntilBed;
+  return millisecondsLeft / totalUsableWindow;
+}
+
+function getEveningWindowUntilCutoff(cutoffDate, now, sessionStart) {
+  const sessionDate = sessionStart ? new Date(sessionStart) : getEveningAnchor(now);
+  return Math.max(0, cutoffDate.getTime() - sessionDate.getTime());
 }
 
 function setActiveTab(tabName) {
@@ -571,6 +597,13 @@ function applyTheme(theme) {
 
 function getStoredTheme() {
   return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+}
+
+function renderCountdownMeta(bedtimeLabel, routineLabel, cutoffLabel) {
+  countdownBedtimeBadge.textContent = `Bedtime ${bedtimeLabel}`;
+  countdownRoutineBadge.textContent = `Routine ${routineLabel}`;
+  countdownFinishBadge.textContent = `Finish by ${cutoffLabel}`;
+  countdownMeta.hidden = false;
 }
 
 function renderTodoItems(items) {
@@ -690,14 +723,14 @@ function updateTodoFitEstimate(todoItems = null) {
 
   if (difference >= 15) {
     todoFitAnswer.textContent = "Yes";
-    todoFitDetail.textContent = `${todoMinutes} min of unfinished tasks fits inside ${remainingMinutes} min left.`;
+    todoFitDetail.textContent = `You can fit all your tasks with ${difference} min to spare.`;
     todoFitCard.classList.add("fits");
     return;
   }
 
   if (difference >= 0) {
     todoFitAnswer.textContent = "Maybe";
-    todoFitDetail.textContent = `${todoMinutes} min of tasks fits, but with only ${difference} min of buffer.`;
+    todoFitDetail.textContent = `You can fit everything, but only with ${difference} min to spare.`;
     todoFitCard.classList.add("tight");
     return;
   }
@@ -753,4 +786,46 @@ function moveTodoItem(items, todoId, direction) {
   const [item] = nextItems.splice(index, 1);
   nextItems.splice(targetIndex, 0, item);
   return nextItems;
+}
+
+function setTodoSortMode(mode) {
+  todoSortMode = mode;
+  sortAscendingButton.classList.toggle("active", mode === "asc");
+  sortDescendingButton.classList.toggle("active", mode === "desc");
+}
+
+async function ensureEveningSession(settings) {
+  const bedtime = bedtimeInput.value || settings.bedtime;
+
+  if (!bedtime) {
+    return null;
+  }
+
+  const now = new Date();
+  const bedtimeDate = getNextBedtimeDate(bedtime, now);
+  const eveningAnchor = getEveningAnchor(now);
+  const existingSession = settings.eveningSession ? new Date(settings.eveningSession) : null;
+
+  if (
+    existingSession
+    && Number.isFinite(existingSession.getTime())
+    && existingSession.getTime() >= eveningAnchor.getTime()
+    && existingSession.getTime() < bedtimeDate.getTime()
+  ) {
+    return settings.eveningSession;
+  }
+
+  if (now.getTime() < eveningAnchor.getTime()) {
+    return eveningAnchor.toISOString();
+  }
+
+  const nextSession = now.toISOString();
+  await chrome.storage.sync.set({ eveningSession: nextSession });
+  return nextSession;
+}
+
+function getEveningAnchor(now) {
+  const anchor = new Date(now);
+  anchor.setHours(17, 0, 0, 0);
+  return anchor;
 }

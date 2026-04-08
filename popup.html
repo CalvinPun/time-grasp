@@ -23,12 +23,15 @@
 
       <header class="hero">
         <h1>Time Grasp</h1>
-        <p class="subtitle">Tracks how much usable time you have left before bed. Usable time means bedtime minus the routine time you still need to set aside.</p>
+        <p class="subtitle">Time left before bed, minus your nightly routine.</p>
       </header>
 
       <section id="countdown-panel" class="tab-panel active" data-panel="countdown">
         <section id="countdown-card" class="countdown-card countdown-idle" aria-live="polite">
-          <p class="countdown-label">Usable time left</p>
+          <div class="countdown-header">
+            <p class="countdown-label">Usable time left</p>
+            <span id="current-time-badge" class="countdown-now">Now --</span>
+          </div>
           <div class="countdown-ring-wrap">
             <svg class="countdown-ring" viewBox="0 0 220 220" aria-hidden="true">
               <circle class="countdown-ring-track" cx="110" cy="110" r="88"></circle>
@@ -38,7 +41,11 @@
               <p id="countdown-display" class="countdown-display">--:--:--</p>
             </div>
           </div>
-          <p id="countdown-detail" class="countdown-detail">Add your bedtime and routine to start the countdown.</p>
+          <div id="countdown-meta" class="countdown-meta" hidden>
+            <span id="countdown-bedtime-badge" class="countdown-badge">Bedtime --</span>
+            <span id="countdown-routine-badge" class="countdown-badge">Routine --</span>
+            <span id="countdown-finish-badge" class="countdown-badge">Finish by --</span>
+          </div>
         </section>
       </section>
 
@@ -74,7 +81,9 @@
             </label>
           </fieldset>
 
-          <button id="save-button" class="save-button" type="submit">Save settings</button>
+          <div class="settings-actions">
+            <button id="save-button" class="save-button" type="submit">Save settings</button>
+          </div>
         </form>
       </section>
 
