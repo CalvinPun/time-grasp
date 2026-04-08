@@ -15,6 +15,7 @@ const DEFAULT_SETTINGS = {
 
 const form = document.querySelector("#settings-form");
 const bedtimeInput = document.querySelector("#bedtime");
+const clearBedtimeButton = document.querySelector("#clear-bedtime-button");
 const bedtimeMenu = document.querySelector("#bedtime-menu");
 const notify30Input = document.querySelector("#notify-30");
 const notify5Input = document.querySelector("#notify-5");
@@ -106,6 +107,7 @@ function loadSettings() {
 
 function applySettingsToForm(settings) {
   bedtimeInput.value = formatStoredBedtime(settings.bedtime);
+  updateBedtimeClearButton();
   notify30Input.checked = settings.notify30;
   notify5Input.checked = settings.notify5;
   notify0Input.checked = settings.notify0;
@@ -279,6 +281,7 @@ sortDescendingButton.addEventListener("click", async () => {
 });
 
 bedtimeInput.addEventListener("input", async () => {
+  updateBedtimeClearButton();
   renderBedtimeMenu(bedtimeInput.value);
   openBedtimeMenu();
   await ensureEveningSession(await loadSettings());
@@ -297,12 +300,23 @@ bedtimeInput.addEventListener("blur", () => {
   const normalizedBedtime = normalizeBedtimeInput(bedtimeInput.value);
 
   if (!normalizedBedtime) {
+    updateBedtimeClearButton();
     window.setTimeout(closeBedtimeMenu, 120);
     return;
   }
 
   bedtimeInput.value = formatStoredBedtime(normalizedBedtime);
+  updateBedtimeClearButton();
   window.setTimeout(closeBedtimeMenu, 120);
+});
+clearBedtimeButton.addEventListener("click", async () => {
+  bedtimeInput.value = "";
+  updateBedtimeClearButton();
+  closeBedtimeMenu();
+  bedtimeInput.focus();
+  await updateCountdownFromForm();
+  updateTodoFitEstimate();
+  queueAutosave();
 });
 notify30Input.addEventListener("change", queueAutosave);
 notify5Input.addEventListener("change", queueAutosave);
@@ -466,6 +480,10 @@ function normalizeRoutineActions(settings) {
   }
 
   return DEFAULT_SETTINGS.routineActions;
+}
+
+function updateBedtimeClearButton() {
+  clearBedtimeButton.hidden = bedtimeInput.value.trim() === "";
 }
 
 function buildBedtimeChoices() {
