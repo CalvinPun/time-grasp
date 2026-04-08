@@ -8,15 +8,22 @@
   </head>
   <body>
     <main class="app">
-      <nav class="tab-bar" aria-label="Popup sections">
-        <button id="countdown-tab" class="tab-button active" type="button" data-tab="countdown">Countdown</button>
-        <button id="todo-tab" class="tab-button" type="button" data-tab="todo">To-Do</button>
-        <button id="settings-tab" class="tab-button" type="button" data-tab="settings">Settings</button>
-      </nav>
+      <section class="topbar">
+        <nav class="tab-bar" aria-label="Popup sections">
+          <button id="countdown-tab" class="tab-button active" type="button" data-tab="countdown">Countdown</button>
+          <button id="todo-tab" class="tab-button" type="button" data-tab="todo">To-Do</button>
+          <button id="settings-tab" class="tab-button" type="button" data-tab="settings">Settings</button>
+        </nav>
+
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle theme" title="Toggle theme">
+          <span class="theme-icon theme-icon-sun" aria-hidden="true">☀</span>
+          <span class="theme-icon theme-icon-moon" aria-hidden="true">☾</span>
+        </button>
+      </section>
 
       <header class="hero">
         <h1>Time Grasp</h1>
-        <p class="subtitle">Set your bedtime and routine so the extension can track your real usable time.</p>
+        <p class="subtitle">A calmer view of what still fits before bed.</p>
       </header>
 
       <section id="countdown-panel" class="tab-panel active" data-panel="countdown">

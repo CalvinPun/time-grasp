@@ -4,6 +4,7 @@ const DEFAULT_SETTINGS = {
     { name: "Get ready", minutes: 45, selected: true }
   ],
   todoItems: [],
+  theme: "light",
   notify30: true,
   notify5: true,
   notify0: true
@@ -34,6 +35,7 @@ const todoFitAnswer = document.querySelector("#todo-fit-answer");
 const todoFitDetail = document.querySelector("#todo-fit-detail");
 const tabButtons = [...document.querySelectorAll(".tab-button")];
 const tabPanels = [...document.querySelectorAll(".tab-panel")];
+const themeToggle = document.querySelector("#theme-toggle");
 
 let saveToastTimeoutId = null;
 let countdownIntervalId = null;
@@ -63,6 +65,7 @@ function applySettingsToForm(settings) {
   notify0Input.checked = settings.notify0;
   renderRoutineActions(normalizeRoutineActions(settings));
   renderTodoItems(Array.isArray(settings.todoItems) ? settings.todoItems : []);
+  applyTheme(settings.theme);
   updateTodoFitEstimate();
 }
 
@@ -90,6 +93,7 @@ form.addEventListener("submit", async (event) => {
   const nextSettings = {
     bedtime,
     routineActions,
+    theme: getStoredTheme(),
     notify30: notify30Input.checked,
     notify5: notify5Input.checked,
     notify0: notify0Input.checked
@@ -222,6 +226,22 @@ tabButtons.forEach((button) => {
   button.addEventListener("click", () => {
     setActiveTab(button.dataset.tab);
   });
+});
+themeToggle.addEventListener("click", async () => {
+  const settings = await loadSettings();
+  const nextTheme = settings.theme === "dark" ? "light" : "dark";
+
+  await chrome.storage.sync.set({
+    bedtime: settings.bedtime,
+    routineActions: Array.isArray(settings.routineActions) ? settings.routineActions : DEFAULT_SETTINGS.routineActions,
+    todoItems: Array.isArray(settings.todoItems) ? settings.todoItems : [],
+    notify30: settings.notify30,
+    notify5: settings.notify5,
+    notify0: settings.notify0,
+    theme: nextTheme
+  });
+
+  applyTheme(nextTheme);
 });
 
 function setStatus(message, tone = "") {
@@ -516,6 +536,14 @@ function setActiveTab(tabName) {
   });
 }
 
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme === "dark" ? "dark" : "light";
+}
+
+function getStoredTheme() {
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+}
+
 function renderTodoItems(items) {
   todoList.replaceChildren();
 
@@ -617,6 +645,13 @@ function updateTodoFitEstimate(todoItems = null) {
   if (difference >= 0) {
     todoFitAnswer.textContent = "Maybe";
     todoFitDetail.textContent = `${todoMinutes} min of tasks fits, but with only ${difference} min of buffer.`;
+    todoFitCard.classList.add("tight");
+    return;
+  }
+
+  if (difference >= -10) {
+    todoFitAnswer.textContent = "Maybe";
+    todoFitDetail.textContent = `You are only over by ${Math.abs(difference)} min, so this is still close.`;
     todoFitCard.classList.add("tight");
     return;
   }
