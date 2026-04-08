@@ -21,7 +21,16 @@
       <section id="countdown-panel" class="tab-panel active" data-panel="countdown">
         <section id="countdown-card" class="countdown-card countdown-idle" aria-live="polite">
           <p class="countdown-label">Usable time left</p>
-          <p id="countdown-display" class="countdown-display">--:--:--</p>
+          <div class="countdown-ring-wrap">
+            <svg class="countdown-ring" viewBox="0 0 220 220" aria-hidden="true">
+              <circle class="countdown-ring-track" cx="110" cy="110" r="88"></circle>
+              <circle id="countdown-ring-progress" class="countdown-ring-progress" cx="110" cy="110" r="88"></circle>
+            </svg>
+            <div class="countdown-ring-content">
+              <p id="countdown-display" class="countdown-display">--:--:--</p>
+              <p id="countdown-percent" class="countdown-percent">0% usable</p>
+            </div>
+          </div>
           <p id="countdown-detail" class="countdown-detail">Add your bedtime and routine to start the countdown.</p>
         </section>
       </section>

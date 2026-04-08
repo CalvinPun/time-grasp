@@ -21,11 +21,17 @@ const saveToast = document.querySelector("#save-toast");
 const countdownCard = document.querySelector("#countdown-card");
 const countdownDisplay = document.querySelector("#countdown-display");
 const countdownDetail = document.querySelector("#countdown-detail");
+const countdownPercent = document.querySelector("#countdown-percent");
+const countdownRingProgress = document.querySelector("#countdown-ring-progress");
 const tabButtons = [...document.querySelectorAll(".tab-button")];
 const tabPanels = [...document.querySelectorAll(".tab-panel")];
 
 let saveToastTimeoutId = null;
 let countdownIntervalId = null;
+const countdownRingCircumference = 2 * Math.PI * 88;
+
+countdownRingProgress.style.strokeDasharray = String(countdownRingCircumference);
+countdownRingProgress.style.strokeDashoffset = String(countdownRingCircumference);
 
 initialize();
 
@@ -268,24 +274,30 @@ function updateCountdownFromForm() {
   const bedtimeDate = getNextBedtimeDate(bedtime, new Date());
   const cutoffDate = new Date(bedtimeDate.getTime() - totalRoutineMinutes * 60 * 1000);
   const millisecondsLeft = cutoffDate.getTime() - Date.now();
+  const millisecondsUntilBed = bedtimeDate.getTime() - Date.now();
 
-  renderCountdown(millisecondsLeft, bedtimeDate, totalRoutineMinutes);
+  renderCountdown(millisecondsLeft, bedtimeDate, totalRoutineMinutes, millisecondsUntilBed);
 }
 
-function renderCountdown(millisecondsLeft, bedtimeDate, totalRoutineMinutes) {
+function renderCountdown(millisecondsLeft, bedtimeDate, totalRoutineMinutes, millisecondsUntilBed) {
   const totalSecondsLeft = Math.floor(millisecondsLeft / 1000);
   const bedtimeLabel = formatClockTime(bedtimeDate);
   const routineLabel = totalRoutineMinutes === 1 ? "1 min" : `${totalRoutineMinutes} min`;
+  const usableShare = getUsableShare(millisecondsLeft, millisecondsUntilBed);
 
   if (millisecondsLeft <= 0) {
     countdownDisplay.textContent = "Time's up";
+    countdownPercent.textContent = "0% usable";
     countdownDetail.textContent = `Bedtime is ${bedtimeLabel}. Your ${routineLabel} routine should already be starting.`;
+    setCountdownProgress(0);
     setCountdownTone("countdown-expired");
     return;
   }
 
   countdownDisplay.textContent = formatDuration(totalSecondsLeft);
+  countdownPercent.textContent = `${Math.round(usableShare * 100)}% usable`;
   countdownDetail.textContent = `Bedtime ${bedtimeLabel}. Routine buffer: ${routineLabel}.`;
+  setCountdownProgress(usableShare);
 
   if (millisecondsLeft <= 15 * 60 * 1000) {
     setCountdownTone("countdown-urgent");
@@ -302,7 +314,9 @@ function renderCountdown(millisecondsLeft, bedtimeDate, totalRoutineMinutes) {
 
 function renderCountdownIdle(message) {
   countdownDisplay.textContent = "--:--:--";
+  countdownPercent.textContent = "0% usable";
   countdownDetail.textContent = message;
+  setCountdownProgress(0);
   setCountdownTone("countdown-idle");
 }
 
@@ -341,6 +355,20 @@ function formatClockTime(date) {
     hour: "numeric",
     minute: "2-digit"
   }).format(date);
+}
+
+function setCountdownProgress(progress) {
+  const clampedProgress = Math.max(0, Math.min(1, progress));
+  const offset = countdownRingCircumference * (1 - clampedProgress);
+  countdownRingProgress.style.strokeDashoffset = String(offset);
+}
+
+function getUsableShare(millisecondsLeft, millisecondsUntilBed) {
+  if (millisecondsLeft <= 0 || millisecondsUntilBed <= 0) {
+    return 0;
+  }
+
+  return millisecondsLeft / millisecondsUntilBed;
 }
 
 function setActiveTab(tabName) {
