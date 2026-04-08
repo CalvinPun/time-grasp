@@ -1,7 +1,7 @@
 const DEFAULT_SETTINGS = {
   bedtime: "",
   routineActions: [
-    { name: "Get ready", minutes: 45 }
+    { name: "Get ready", minutes: 45, selected: true }
   ],
   todoItems: [],
   notify30: true,
@@ -137,6 +137,25 @@ actionsList.addEventListener("input", () => {
   updateTodoFitEstimate();
 });
 
+actionsList.addEventListener("change", (event) => {
+  const checkbox = event.target.closest(".action-checkbox");
+
+  if (!checkbox) {
+    return;
+  }
+
+  const row = checkbox.closest(".action-row");
+
+  if (!row) {
+    return;
+  }
+
+  row.classList.toggle("selected", checkbox.checked);
+  updateRoutineTotal();
+  updateCountdownFromForm();
+  updateTodoFitEstimate();
+});
+
 todoForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
@@ -227,7 +246,8 @@ function normalizeRoutineActions(settings) {
   if (Array.isArray(settings.routineActions) && settings.routineActions.length > 0) {
     return settings.routineActions.map((action) => ({
       name: typeof action.name === "string" ? action.name : "",
-      minutes: Number.isFinite(action.minutes) ? action.minutes : 0
+      minutes: Number.isFinite(action.minutes) ? action.minutes : 0,
+      selected: "selected" in action ? Boolean(action.selected) : Boolean(action.done)
     }));
   }
 
@@ -235,7 +255,8 @@ function normalizeRoutineActions(settings) {
     return [
       {
         name: "Get ready",
-        minutes: settings.routineMinutes
+        minutes: settings.routineMinutes,
+        selected: true
       }
     ];
   }
@@ -256,6 +277,16 @@ function renderRoutineActions(actions) {
 function createActionRow(action) {
   const row = document.createElement("div");
   row.className = "action-row";
+
+  if (action.selected) {
+    row.classList.add("selected");
+  }
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.className = "action-checkbox";
+  checkbox.checked = Boolean(action.selected);
+  checkbox.setAttribute("aria-label", `Include ${action.name || "routine action"} in routine`);
 
   const nameInput = document.createElement("input");
   nameInput.type = "text";
@@ -279,21 +310,26 @@ function createActionRow(action) {
   removeButton.setAttribute("aria-label", "Remove action");
   removeButton.textContent = "×";
 
-  row.append(nameInput, minutesInput, removeButton);
+  row.append(checkbox, nameInput, minutesInput, removeButton);
   return row;
 }
 
 function collectRoutineActions() {
   return [...actionsList.querySelectorAll(".action-row")].map((row) => {
+    const selected = row.querySelector(".action-checkbox").checked;
     const name = row.querySelector(".action-name").value.trim();
     const minutes = Number.parseInt(row.querySelector(".action-minutes").value, 10);
 
-    return { name, minutes };
+    return { name, minutes, selected };
   });
 }
 
 function updateRoutineTotal() {
   const total = collectRoutineActions().reduce((sum, action) => {
+    if (!action.selected) {
+      return sum;
+    }
+
     return sum + (Number.isFinite(action.minutes) && action.minutes > 0 ? action.minutes : 0);
   }, 0);
 
@@ -309,7 +345,8 @@ function isValidRoutineAction(action) {
 function createEmptyRoutineAction() {
   return {
     name: "",
-    minutes: 5
+    minutes: 5,
+    selected: true
   };
 }
 
@@ -357,11 +394,13 @@ function updateCountdownFromForm() {
   const invalidAction = routineActions.find((action) => !isDraftRoutineActionUsable(action));
 
   if (invalidAction) {
-    renderCountdownIdle("Finish each routine action to see your real usable time.");
+    renderCountdownIdle("Add names and times for the routine actions you want included.");
     return;
   }
 
-  const totalRoutineMinutes = routineActions.reduce((sum, action) => sum + action.minutes, 0);
+  const totalRoutineMinutes = routineActions.reduce((sum, action) => {
+    return action.selected ? sum + action.minutes : sum;
+  }, 0);
   const bedtimeDate = getNextBedtimeDate(bedtime, new Date());
   const cutoffDate = new Date(bedtimeDate.getTime() - totalRoutineMinutes * 60 * 1000);
   const millisecondsLeft = cutoffDate.getTime() - Date.now();
@@ -545,7 +584,9 @@ function updateTodoFitEstimate(todoItems = null) {
     return;
   }
 
-  const totalRoutineMinutes = routineActions.reduce((sum, action) => sum + action.minutes, 0);
+  const totalRoutineMinutes = routineActions.reduce((sum, action) => {
+    return action.selected ? sum + action.minutes : sum;
+  }, 0);
   const bedtimeDate = getNextBedtimeDate(bedtime, new Date());
   const cutoffDate = new Date(bedtimeDate.getTime() - totalRoutineMinutes * 60 * 1000);
   const remainingMinutes = Math.max(0, Math.floor((cutoffDate.getTime() - Date.now()) / 60000));

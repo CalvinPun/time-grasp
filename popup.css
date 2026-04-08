@@ -369,9 +369,20 @@ h1 {
 
 .action-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 96px 44px;
+  grid-template-columns: auto minmax(0, 1fr) 96px 44px;
   gap: 8px;
   align-items: center;
+}
+
+.action-row:not(.selected) .action-name,
+.action-row:not(.selected) .action-minutes {
+  opacity: 0.5;
+}
+
+.action-checkbox {
+  width: 18px;
+  height: 18px;
+  margin: 0;
 }
 
 .action-minutes {
