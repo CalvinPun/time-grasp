@@ -31,18 +31,14 @@
           >
         </label>
 
-        <label class="field">
-          <span>Routine duration (minutes)</span>
-          <input
-            id="routine-minutes"
-            name="routineMinutes"
-            type="number"
-            min="0"
-            max="300"
-            step="5"
-            required
-          >
-        </label>
+        <section class="field">
+          <div class="section-heading">
+            <span>Routine actions</span>
+            <button id="add-action-button" class="ghost-button" type="button">Add action</button>
+          </div>
+          <div id="routine-actions" class="actions-list"></div>
+          <p id="routine-total" class="routine-total">Total routine time: 0 min</p>
+        </section>
 
         <fieldset class="field checkbox-group">
           <legend>Notifications</legend>
@@ -60,10 +56,11 @@
           </label>
         </fieldset>
 
-        <button class="save-button" type="submit">Save settings</button>
+        <button id="save-button" class="save-button" type="submit">Save settings</button>
       </form>
 
       <p id="status-message" class="status-message" role="status" aria-live="polite"></p>
+      <div id="save-toast" class="save-toast" aria-hidden="true">Settings saved</div>
     </main>
     <script src="popup.js"></script>
   </body>
