@@ -313,10 +313,10 @@ clearBedtimeButton.addEventListener("click", async () => {
   bedtimeInput.value = "";
   updateBedtimeClearButton();
   closeBedtimeMenu();
-  bedtimeInput.focus();
+  bedtimeInput.blur();
+  await clearBedtime();
   await updateCountdownFromForm();
   updateTodoFitEstimate();
-  queueAutosave();
 });
 notify30Input.addEventListener("change", queueAutosave);
 notify5Input.addEventListener("change", queueAutosave);
@@ -424,6 +424,25 @@ async function saveSettings() {
   void startCountdown();
   updateTodoFitEstimate();
   return true;
+}
+
+async function clearBedtime() {
+  const settings = await loadSettings();
+
+  await chrome.storage.sync.set({
+    bedtime: "",
+    routineActions: Array.isArray(settings.routineActions) ? settings.routineActions : DEFAULT_SETTINGS.routineActions,
+    todoItems: Array.isArray(settings.todoItems) ? settings.todoItems : [],
+    theme: getStoredTheme(),
+    eveningSession: null,
+    notify30: notify30Input.checked,
+    notify5: notify5Input.checked,
+    notify0: notify0Input.checked,
+    notificationSound: notificationSoundInput.checked,
+    notificationVolume: getNotificationVolume()
+  });
+
+  await refreshBackgroundAlarms();
 }
 
 function queueAutosave() {
