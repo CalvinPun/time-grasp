@@ -702,7 +702,7 @@ async function updateCountdownFromForm() {
   const cutoffDate = new Date(bedtimeDate.getTime() - totalRoutineMinutes * 60 * 1000);
   const millisecondsLeft = cutoffDate.getTime() - now.getTime();
   const sessionStart = await ensureEveningSession(await loadSettings());
-  const totalUsableWindow = getEveningWindowUntilCutoff(cutoffDate, now, sessionStart);
+  const totalUsableWindow = getEveningWindowUntilCutoff(cutoffDate, sessionStart);
 
   renderCountdown(millisecondsLeft, bedtimeDate, cutoffDate, totalRoutineMinutes, totalUsableWindow);
 }
@@ -759,8 +759,7 @@ function getPopupBedtimeDate(timeString, now) {
   const bedtime = new Date(now);
   bedtime.setHours(hours, minutes, 0, 0);
 
-  // Treat AM bedtimes entered during the afternoon/evening as the next morning.
-  if (hours < 12 && now.getHours() >= 12) {
+  if (bedtime.getTime() <= now.getTime()) {
     bedtime.setDate(bedtime.getDate() + 1);
   }
 
@@ -874,8 +873,8 @@ function getUsableShare(millisecondsLeft, totalUsableWindow) {
   return millisecondsLeft / totalUsableWindow;
 }
 
-function getEveningWindowUntilCutoff(cutoffDate, now, sessionStart) {
-  const sessionDate = sessionStart ? new Date(sessionStart) : getEveningAnchor(now);
+function getEveningWindowUntilCutoff(cutoffDate, sessionStart) {
+  const sessionDate = sessionStart ? new Date(sessionStart) : getEveningAnchorForTarget(cutoffDate);
   return Math.max(0, cutoffDate.getTime() - sessionDate.getTime());
 }
 
@@ -1089,7 +1088,7 @@ async function ensureEveningSession(settings) {
 
   const now = new Date();
   const bedtimeDate = getPopupBedtimeDate(bedtime, now);
-  const eveningAnchor = getEveningAnchor(now);
+  const eveningAnchor = getEveningAnchorForTarget(bedtimeDate);
   const existingSession = settings.eveningSession ? new Date(settings.eveningSession) : null;
 
   if (
@@ -1113,5 +1112,16 @@ async function ensureEveningSession(settings) {
 function getEveningAnchor(now) {
   const anchor = new Date(now);
   anchor.setHours(17, 0, 0, 0);
+  return anchor;
+}
+
+function getEveningAnchorForTarget(targetDate) {
+  const anchor = new Date(targetDate);
+  anchor.setHours(17, 0, 0, 0);
+
+  if (anchor.getTime() > targetDate.getTime()) {
+    anchor.setDate(anchor.getDate() - 1);
+  }
+
   return anchor;
 }
