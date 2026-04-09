@@ -1,12 +1,14 @@
 # Time Grasp
 
-Time Grasp is a Chrome extension that helps you see how much usable time you actually have left before bed.
+Time Grasp: Bedtime Countdown is a Chrome extension that helps you see how much usable time you actually have left before bed.
 
 Instead of only counting down to bedtime, it subtracts your selected night routine and shows the time you really have left to do things before you need to start winding down.
 
 Made for a friend :)
 
-## Logo
+Store name: `Time Grasp`
+
+## Logo & Branding Screenshots
 - Handmade in Figma
 
 ## What It Does
@@ -57,23 +59,33 @@ Overnight times are handled too. For example, entering `3:30 AM` during the even
 
 ```text
 time-grasp/
+├── .gitignore
 ├── alerts/
 │   ├── soft-alert.mp3
 │   ├── medium-alert.mp3
 │   └── final-alert.mp3
 ├── public/
-│   ├── time-grasp.png
+│   ├── branding/
+│   │   ├── Countdown.png
+│   │   ├── Light-Dark.png
+│   │   ├── Settings.png
+│   │   ├── To-Do.png
+│   │   ├── banner.png
+│   │   └── promo.png
 │   ├── time-grasp-16.png
 │   ├── time-grasp-32.png
 │   ├── time-grasp-48.png
-│   └── time-grasp-128.png
+│   ├── time-grasp-128.png
+│   └── time-grasp.png
 ├── background.js
+├── LICENSE
 ├── manifest.json
 ├── offscreen.html
 ├── offscreen.js
 ├── popup.css
 ├── popup.html
-└── popup.js
+├── popup.js
+└── README.md
 ```
 
 ## Installation
