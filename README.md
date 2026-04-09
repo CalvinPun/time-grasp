@@ -8,8 +8,30 @@ Made for a friend :)
 
 Store name: `Time Grasp`
 
-## Logo & Branding Screenshots
+## Logo + Screenshots
 - Handmade in Figma
+
+### Logo
+![Logo](public/time-grasp.png)
+
+### Promo
+![promo](public/branding/promo.png)
+
+### Banner
+![banner](public/branding/banner.png)
+
+### Countdown
+![Countdown](public/branding/Countdown.png)
+
+### To-Do
+![To-Do](public/branding/To-Do.png)
+
+### Settings
+![Settings](public/branding/Settings.png)
+
+### Light & Dark Mode
+![Light and Dark Mode](public/branding/Light-Dark.png)
+
 
 ## What It Does
 
