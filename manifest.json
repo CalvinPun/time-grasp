@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Time Grasp",
-  "version": "0.1.0",
+  "name": "Time Grasp - Take Control of Your Time",
+  "version": "0.1.1",
   "description": "See how much usable time you really have left before bed.",
   "permissions": [
     "storage",

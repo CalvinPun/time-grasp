@@ -127,4 +127,11 @@ time-grasp/
 
 ## Current Version
 
-`0.1.0`
+### `0.2.0`
+Bug fixes:
+1. Fixed progress bar not showing up when setting AM times to AM times (now it always uses the next upcoming occurence of the entered time)
+2. Clearing bedtime now resets the timer
+
+## Previous Versions
+### `0.1.0`
+- Initial Release
