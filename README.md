@@ -1,4 +1,5 @@
 # Time Grasp
+Link to Store: [Time Grasp](https://chromewebstore.google.com/detail/time-grasp/jackjcddpfmdnemggbhaehkkmmkfdfjd?authuser=0&hl=en)
 
 Time Grasp: Bedtime Countdown is a Chrome extension that helps you see how much usable time you actually have left before bed.
 
@@ -6,7 +7,7 @@ Instead of only counting down to bedtime, it subtracts your selected night routi
 
 Made for a friend :)
 
-Store name: `Time Grasp`
+Store name: `Time Grasp: Take Control of Your Time`
 
 ## Logo + Screenshots
 - Handmade in Figma
