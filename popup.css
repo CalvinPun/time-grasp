@@ -20,13 +20,7 @@
 }
 
 html {
-  height: 100%;
   max-height: 700px;
-}
-
-html.countdown-locked,
-html.countdown-locked body {
-  overflow: hidden;
 }
 
 html[data-theme="dark"] {
@@ -57,16 +51,10 @@ body {
   margin: 0;
   min-width: 380px;
   width: 392px;
-  min-height: 100%;
   max-height: 700px;
   overflow-y: auto;
   background: var(--bg);
   color: var(--text);
-}
-
-body.countdown-locked {
-  height: 100vh;
-  overflow-y: hidden;
 }
 
 button,
@@ -77,11 +65,6 @@ input {
 .app {
   padding: 16px;
   padding-bottom: 24px;
-}
-
-body.countdown-locked .app {
-  height: 100vh;
-  overflow: hidden;
 }
 
 .topbar {
